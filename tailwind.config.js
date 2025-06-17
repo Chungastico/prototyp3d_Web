@@ -16,8 +16,8 @@ module.exports = {
             negro: '#202124',
         },
         fontFamily: {
-            sans: ['"Poppins"', 'sans-serif'],
-        },
+            garet: ['"Garet"', 'sans-serif'],
+            },
         },
     },
     plugins: [],
