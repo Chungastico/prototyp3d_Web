@@ -1,27 +1,36 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 import ScrollSmoother from 'gsap/ScrollSmoother';
 
-gsap.registerPlugin(ScrollTrigger, ScrollSmoother); 
+gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
 export default function ScrollLayout({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof window !== 'undefined') {
       const skewSetter = gsap.quickTo('img', 'skewY');
       const clamp = gsap.utils.clamp(-20, 20);
 
-      ScrollSmoother.create({
+      const smoother = ScrollSmoother.create({
         wrapper: '#wrapper',
         content: '#content',
         smooth: 2,
-        speed: 3,
+        speed: 1.5,
         effects: true,
-        onUpdate: (self: any) => skewSetter(clamp(self.getVelocity() / -50)),
-        onStop: () => skewSetter(0),
+        onUpdate: (self) => {
+          const velocity = self.getVelocity();
+          skewSetter(clamp(velocity / -50));
+        },
+        onStop: () => {
+          skewSetter(0);
+        },
       });
+
+      return () => {
+        smoother.kill();
+      };
     }
   }, []);
 
