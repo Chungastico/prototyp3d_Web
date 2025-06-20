@@ -1,12 +1,25 @@
-// src/app/page.tsx
+'use client';
+
+import { useState } from 'react';
+import Navbar from '../components/Navbar';
+import Hero from '../components/Hero';
+import ScrollLayout from '../components/ScrollLayout';
+import IntroTransition from '../components/IntroTransition'; // nuevo
+
 export default function Home() {
+    const [introFinished, setIntroFinished] = useState(false);
+
     return (
-        <main className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <h1 className="text-5xl font-garet font-extrabold text-azul">¡Prototyp3D funcionando!</h1>
-        <p className="text-lg text-azul-oscuro">Tu idea. Nuestro modelo.</p>
-        <button className="px-6 py-2 bg-naranja text-white rounded-xl shadow-lg hover:bg-azul transition">
-            Ver servicios
-        </button>
+        <main className="relative">
+            {!introFinished && <IntroTransition onFinish={() => setIntroFinished(true)} />}
+
+            {introFinished && (
+                <ScrollLayout>
+                    <Navbar />
+                    <Hero />
+                    {/* Aquí podés seguir agregando tus otras secciones */}
+                </ScrollLayout>
+            )}
         </main>
-    )
+    );
 }
