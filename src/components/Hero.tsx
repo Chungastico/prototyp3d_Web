@@ -53,7 +53,7 @@ export default function Hero() {
                 {/* Imagen derecha */}
                 <div ref={imageRef} className="w-[240px] sm:w-[300px] md:w-[420px] z-10">
                     <Image
-                        src="/images/heroBambu.png"
+                        src="/images/HeroBambu.png"
                         alt="Hero Bambu"
                         width={420}
                         height={420}
