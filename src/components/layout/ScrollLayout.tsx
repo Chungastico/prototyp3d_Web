@@ -10,7 +10,7 @@ gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 export default function ScrollLayout({ children }: { children: React.ReactNode }) {
   useLayoutEffect(() => {
     if (typeof window !== 'undefined') {
-      const skewSetter = gsap.quickTo('img', 'skewY');
+      const skewSetter = gsap.quickTo('.skew-img', 'skewY');
       const clamp = gsap.utils.clamp(-20, 20);
 
       const smoother = ScrollSmoother.create({

@@ -1,10 +1,11 @@
 'use client';
 
+import Services from '@/components/home/SectionServices';
 import { useState } from 'react';
-import Navbar from '../components/Navbar';
-import Hero from '../components/Hero';
-import ScrollLayout from '../components/ScrollLayout';
-import IntroTransition from '../components/IntroTransition'; // nuevo
+import Navbar from '../components/layout/Navbar';
+import Hero from '../components/home/Hero';
+import ScrollLayout from '../components/layout/ScrollLayout';
+import IntroTransition from '../components/home/IntroTransition'; // nuevo
 
 export default function Home() {
     const [introFinished, setIntroFinished] = useState(false);
@@ -17,7 +18,8 @@ export default function Home() {
                 <ScrollLayout>
                     <Navbar />
                     <Hero />
-                    {/* Aquí podés seguir agregando tus otras secciones */}
+                    <Services />
+                    {/* Aquí puedes agregar más secciones o componentes */}
                 </ScrollLayout>
             )}
         </main>
