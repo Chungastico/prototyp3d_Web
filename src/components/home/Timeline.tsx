@@ -35,25 +35,17 @@ export default function Timeline() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        '.step',
-        { x: 100, opacity: 0 },
-        {
-          x: 0,
-          opacity: 1,
-          stagger: 0.2,
-          duration: 0.8,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: 'top 80%',
-            end: 'top 30%', // para mejor control al salir
-            toggleActions: 'play reverse play reverse',
-            once: false,
-            // markers: true, // descomenta si querés ver los puntos de activación
-          },
-        }
-      );
+      gsap.from('.step', {
+        x: 100,
+        opacity: 0,
+        stagger: 0.2,
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: 'top 80%',
+        },
+        duration: 0.8,
+        ease: 'power2.out',
+      });
     }, containerRef);
 
     return () => ctx.revert();
