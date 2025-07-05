@@ -1,5 +1,6 @@
 import '../styles/globals.css';
 import { ReactNode } from 'react';
+import { AuthProvider } from '@/context/AuthContext'; // ✅ importa tu proveedor
 import '@react-three/fiber';
 
 export const metadata = {
@@ -10,11 +11,12 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
         <html lang="es" suppressHydrationWarning>
-        <head>
-        </head>
-        <body className="font-sans bg-beige-claro text-negro">
-            {children}
-        </body>
+            <head />
+            <body className="font-sans bg-beige-claro text-negro">
+                <AuthProvider>
+                    {children}
+                </AuthProvider>
+            </body>
         </html>
     );
 }

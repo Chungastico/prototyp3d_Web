@@ -19,23 +19,6 @@ export default function SectionServices() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const nextTab = () => {
-    const currentIndex = tabs.indexOf(activeTab);
-    const nextIndex = (currentIndex + 1) % tabs.length;
-    setActiveTab(tabs[nextIndex]);
-  };
-
-  useEffect(() => {
-    intervalRef.current = setInterval(() => {
-      nextTab();
-    }, 5000);
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, [activeTab]);
-
   const handleTabClick = (tab: typeof tabs[number]) => {
     setActiveTab(tab);
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -43,10 +26,29 @@ export default function SectionServices() {
 
     timeoutRef.current = setTimeout(() => {
       intervalRef.current = setInterval(() => {
-        nextTab();
+        setActiveTab((prevTab) => {
+          const currentIndex = tabs.indexOf(prevTab);
+          const nextIndex = (currentIndex + 1) % tabs.length;
+          return tabs[nextIndex];
+        });
       }, 5000);
     }, 10000);
   };
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setActiveTab((prevTab) => {
+        const currentIndex = tabs.indexOf(prevTab);
+        const nextIndex = (currentIndex + 1) % tabs.length;
+        return tabs[nextIndex];
+      });
+    }, 5000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   return (
     <section className="py-12 md:py-16 bg-naranja text-negro font-garet overflow-hidden">
