@@ -1,16 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
-    const token = request.cookies.get('token')?.value;
+// Protege las rutas que requieran autenticación si es necesario
+// const isProtectedRoute = createRouteMatcher(['/admin(.*)']);
 
-    // Lógica sencilla: Si hay token y va a "/", redirigir a /admin
-    if (token && request.nextUrl.pathname === '/') {
-        return NextResponse.redirect(new URL('/admin', request.url));
-    }
+export default clerkMiddleware(async (auth, req) => {
+  const { userId } = await auth();
 
-    return NextResponse.next();
-}
+  // Redirección eliminada: El usuario puede permanecer en landing page.
+  // if (userId && req.nextUrl.pathname === '/') {
+  //   return NextResponse.redirect(new URL('/admin', req.url));
+  // }
+});
 
 export const config = {
-    matcher: ['/', '/admin/:path*'],
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
 };

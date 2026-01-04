@@ -1,6 +1,6 @@
 import '../styles/globals.css';
 import { ReactNode } from 'react';
-import { AuthProvider } from '@/context/AuthContext'; // ✅ importa tu proveedor
+import { ClerkProvider } from '@clerk/nextjs';
 import '@react-three/fiber';
 
 export const metadata = {
@@ -10,13 +10,13 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
-        <html lang="es" suppressHydrationWarning>
-            <head />
-            <body className="font-sans bg-beige-claro text-negro">
-                <AuthProvider>
+        <ClerkProvider>
+            <html lang="es" suppressHydrationWarning>
+                <head />
+                <body className="font-sans bg-beige-claro text-negro">
                     {children}
-                </AuthProvider>
-            </body>
-        </html>
+                </body>
+            </html>
+        </ClerkProvider>
     );
 }

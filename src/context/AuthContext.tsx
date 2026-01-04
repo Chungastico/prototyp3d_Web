@@ -1,79 +1,47 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, User } from "firebase/auth";
-import { auth, db } from "@/firebase/firebase";
-import {
-    registerUser,
-    loginUser,
-    logoutUser,
-    loginWithGoogle
-} from "@/lib/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { useUser, useClerk } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+// import { supabase } from "@/lib/supabase";
+// import { useEffect, useState } from "react";
 
-type AuthContextType = {
-    user: User | null;
-    role: string | null;
-    loading: boolean;
-    registerUser: typeof registerUser;
-    loginUser: typeof loginUser;
-    logoutUser: typeof logoutUser;
-    loginWithGoogle: typeof loginWithGoogle;
-};
+import { useUserRole } from "@/hooks/useUserRole";
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [role, setRole] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-            setUser(currentUser);
-
-            if (currentUser) {
-                // Leer rol del usuario desde Firestore
-                const docRef = doc(db, "usuarios", currentUser.uid);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    setRole(data.role || null);
-                } else {
-                    setRole(null);
-                }
-            } else {
-                setRole(null);
-            }
-
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, []);
-
-    return (
-        <AuthContext.Provider
-            value={{
-                user,
-                role,
-                loading,
-                registerUser,
-                loginUser,
-                logoutUser,
-                loginWithGoogle
-            }}
-        >
-            {children}
-        </AuthContext.Provider>
-    );
-};
+// Este hook actúa como un puente (bridge) para migrar de Firebase AuthContext a Clerk
+// sin romper los componentes existentes que usan `useAuth`.
 
 export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error("useAuth debe usarse dentro de un <AuthProvider>");
-    }
-    return context;
+    const { user, isLoaded } = useUser();
+    const { signOut, openSignIn, openSignUp } = useClerk();
+    const router = useRouter();
+
+    // Fetch role from Supabase
+    const { role, loading: roleLoading } = useUserRole();
+
+    const logoutUser = async () => {
+        await signOut();
+        router.push('/');
+    };
+
+    const loginUser = () => openSignIn();
+    
+    // Funciones legacy que ya no deberían usarse si se usa <SignIn /> de Clerk,
+    // pero se mantienen para evitar errores de compilación en componentes no migrados.
+    const registerUser = () => openSignUp();
+    const loginWithGoogle = () => openSignIn();
+
+    return {
+        user,
+        role,
+        loading: !isLoaded || roleLoading,
+        logoutUser,
+        loginUser,
+        registerUser,
+        loginWithGoogle
+    };
+};
+
+// Componente dummy para compatibilidad si algún archivo aún lo importa
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+    return <>{children}</>;
 };

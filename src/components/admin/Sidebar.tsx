@@ -1,17 +1,16 @@
 // src/components/admin/Sidebar.tsx
 'use client';
 
-import { LogOut, Home, Package, ShoppingCart, BarChart2 } from 'lucide-react';
+import { Home, Package, ShoppingCart, BarChart2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuth } from '@/context/AuthContext';
+import { UserButton } from '@clerk/nextjs';
 
 type SidebarProps = {
     collapsed: boolean;
 };
 
 const Sidebar = ({ collapsed }: SidebarProps) => {
-    const { user, logoutUser } = useAuth();
 
     return (
         <aside
@@ -49,33 +48,19 @@ const Sidebar = ({ collapsed }: SidebarProps) => {
             </nav>
 
             {/* Perfil y logout */}
-            <div className="text-center mt-10">
-                {user?.photoURL ? (
-                    <Image
-                        src={user.photoURL}
-                        alt="Foto de perfil"
-                        width={collapsed ? 48 : 96}
-                        height={collapsed ? 48 : 96}
-                        className="rounded-full mx-auto transition-all duration-300"
+            <div className={`text-center mt-10 flex flex-col items-center ${collapsed ? 'px-0' : 'px-4'}`}>
+                <div className="scale-125 mb-4">
+                    <UserButton 
+                        showName={!collapsed}
+                        appearance={{
+                            elements: {
+                                userButtonBox: "flex flex-col gap-2",
+                                userButtonOuterIdentifier: "text-naranja font-bold",
+                                avatarBox: collapsed ? "w-10 h-10" : "w-16 h-16"
+                            }
+                        }}
                     />
-                ) : (
-                    <div
-                        className={`bg-gray-200 rounded-full mx-auto transition-all duration-300 ${
-                            collapsed ? 'w-12 h-12' : 'w-24 h-24'
-                        }`}
-                    />
-                )}
-
-                {!collapsed && (
-                    <p className="font-bold mt-2">{user?.displayName || 'Usuario'}</p>
-                )}
-
-                <button
-                    onClick={logoutUser}
-                    className="mt-4 text-naranja hover:text-white transition mx-auto"
-                >
-                    <LogOut size={24} />
-                </button>
+                </div>
             </div>
         </aside>
     );
