@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 
 type Props = {
     children: React.ReactNode;
-    requiredRole?: 'admin' | 'cliente'; // puedes agregar más roles si usas más
+    requiredRole?: 'admin' | 'cliente'; 
 };
 
 export default function ProtectedPage({ children, requiredRole }: Props) {

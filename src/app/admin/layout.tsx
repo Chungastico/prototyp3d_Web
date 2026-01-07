@@ -1,39 +1,53 @@
-'use client';
+'use client'
 
-import Sidebar from '@/components/admin/Sidebar';
-import Topbar from '@/components/admin/Topbar';
-import { useState, useEffect } from 'react';
-import { useUserRole } from '@/hooks/useUserRole';
-import { useRouter } from 'next/navigation';
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarItem, SidebarTrigger, SidebarGroup, SidebarGroupLabel } from "@/components/ui/sidebar"
+import { Package, LayoutDashboard, Settings, FileText, ShoppingCart, Users, FolderKanban } from "lucide-react"
+import { UserButton } from "@clerk/nextjs"
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const [collapsed, setCollapsed] = useState(false);
-    const { role, loading } = useUserRole();
-    const router = useRouter();
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarHeader>
+           <span className="font-bold text-xl tracking-tighter">PROTOTYP3D</span>
+        </SidebarHeader>
+        <SidebarContent>
+            <SidebarGroup>
+                <SidebarGroupLabel>General</SidebarGroupLabel>
+                <SidebarItem href="/admin" icon={LayoutDashboard}>Dashboard</SidebarItem>
+            </SidebarGroup>
+            
+            <SidebarGroup>
+                <SidebarGroupLabel>Gestión</SidebarGroupLabel>
+                <SidebarItem href="/admin/projects" icon={FolderKanban} active>Proyectos Internos</SidebarItem>
+                <SidebarItem href="/admin/jobs" icon={FileText}>Trabajos</SidebarItem>
+                <SidebarItem href="/admin/inventory" icon={Package}>Inventario</SidebarItem>
+                 <SidebarItem href="/admin/catalog" icon={ShoppingCart}>Catálogo 3D</SidebarItem>
+            </SidebarGroup>
 
-    useEffect(() => {
-        if (!loading && role !== 'admin') {
-            router.push('/'); // Redirigir a landing si no es admin
-        }
-    }, [role, loading, router]);
-
-    const toggleSidebar = () => {
-        setCollapsed((prev) => !prev);
-    };
-
-    if (loading) {
-        return <div className="h-screen flex items-center justify-center bg-azul-black text-white">Cargando...</div>;
-    }
-
-    if (role !== 'admin') return null; // Evitar flash de contenido protected
-
-    return (
-        <div className="flex h-screen bg-azul-black text-white">
-            <Sidebar collapsed={collapsed} />
-            <div className="flex-1 flex flex-col">
-                <Topbar onToggleSidebar={toggleSidebar} />
-                <main className="flex-1 p-6 overflow-hidden">{children}</main>
-            </div>
-        </div>
-    );
+            <SidebarGroup>
+                <SidebarGroupLabel>Personas</SidebarGroupLabel>
+                <SidebarItem href="/admin/clients" icon={Users}>Clientes</SidebarItem>
+                <SidebarItem href="/admin/suppliers" icon={Users}>Proveedores</SidebarItem>
+            </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter>
+             <UserButton afterSignOutUrl="/" />
+        </SidebarFooter>
+      </Sidebar>
+      <main className="flex-1 overflow-auto bg-gray-100 transition-all duration-300">
+          <header className="h-16 flex items-center px-6 border-b bg-white">
+              <SidebarTrigger />
+              <h1 className="ml-4 text-lg font-semibold text-gray-800">Admin Panel</h1>
+          </header>
+          <div className="p-6">
+              {children}
+          </div>
+      </main>
+    </SidebarProvider>
+  )
 }
