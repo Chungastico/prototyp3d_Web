@@ -103,12 +103,13 @@ export default function Hero() {
                     >
                         <span className="block">DALE FORMA A</span>
                         <span className="block">TUS IDEAS</span>
+                        <span className="sr-only"> - Impresión 3D en El Salvador</span>
                     </h1>
                     <p
                         ref={subtitleRef}
                         className="text-lg sm:text-xl md:text-2xl lg:text-3xl mb-6 md:mb-8 font-normal"
                     >
-                        Te ayudamos a materializar conceptos con impresión 3D accesible y confiable.
+                        Te ayudamos a materializar conceptos con impresión 3D accesible y confiable en San Salvador.
                     </p>
                     <button
                         ref={buttonRef}
@@ -122,7 +123,7 @@ export default function Hero() {
                 <div ref={imageRef} className="w-[240px] sm:w-[300px] md:w-[420px] z-10">
                     <Image
                         src="/images/HeroBambu.png"
-                        alt="Hero Bambu"
+                        alt="Impresora 3D Bambu Lab imprimiendo piezas de alta calidad en Prototyp3D El Salvador"
                         width={420}
                         height={420}
                         className="w-full h-auto rounded-xl shadow-lg object-contain"

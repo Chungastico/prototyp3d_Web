@@ -1,127 +1,67 @@
-'use client';
+import { Metadata } from 'next';
+import Image from 'next/image';
+import ScrollLayout from '@/components/layout/ScrollLayout';
+import Footer from '@/components/layout/Footer';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Lightbulb, Sparkles, ThumbsUp, User } from 'lucide-react';
+export const metadata: Metadata = {
+  title: 'Sobre Nosotros | Prototyp3D - Expertos en Impresión 3D',
+  description: 'Conoce a Prototyp3D, tu aliado en manufactura aditiva y diseño digital en El Salvador. Apoyamos a estudiantes, emprendedores e industrias.',
+};
 
-const sections = [
-    {
-        key: 'mision',
-        title: 'Misión',
-        icon: <Lightbulb size={20} />,
-        color: 'bg-azul-oscuro text-white',
-        content: (
-            <>
-                <h2 className="text-3xl font-bold mb-4 text-naranja">Nuestra Misión</h2>
-                <p>
-                    Facilitamos la materialización de ideas a través de impresión 3D confiable, creativa y accesible.
-                    Acompañamos a estudiantes, emprendedores y empresas en cada paso del proceso para que prototipar
-                    sea tan fácil como imaginar.
-                </p>
-            </>
-        ),
-    },
-    {
-        key: 'vision',
-        title: 'Visión',
-        icon: <Sparkles size={20} />,
-        color: 'bg-beige-claro text-azul-oscuro',
-        content: (
-            <>
-                <h2 className="text-3xl font-bold mb-4 text-azul-oscuro">Nuestra Visión</h2>
-                <p>
-                    Ser el espacio de referencia en impresión 3D en nuestra región, reconocido por brindar soluciones
-                    innovadoras, atención cercana y un entorno seguro donde cualquier idea puede tomar forma.
-                </p>
-            </>
-        ),
-    },
-    {
-        key: 'diferenciadores',
-        title: '¿Por qué elegirnos?',
-        icon: <ThumbsUp size={20} />,
-        color: 'bg-naranja text-azul-oscuro',
-        content: (
-            <>
-                <h2 className="text-3xl font-bold mb-4">¿Por qué elegirnos?</h2>
-                <ul className="list-disc pl-5 space-y-2 text-base">
-                    <li>Acompañamos desde la idea hasta el resultado final</li>
-                    <li>Branding moderno y comunicación cercana (Instagram)</li>
-                    <li>Pedidos personalizados, incluso desde 1 unidad</li>
-                    <li>Entregas rápidas y atención directa del creador</li>
-                    <li>Colaboración con estudiantes, creativos y emprendedores</li>
-                </ul>
-            </>
-        ),
-    },
-    {
-        key: 'historia',
-        title: 'Mi historia',
-        icon: <User size={20} />,
-        color: 'bg-azul-oscuro text-white',
-        content: (
-            <>
-                <h2 className="text-3xl font-bold mb-4 text-naranja">Mi Historia</h2>
-                <p>
-                    Soy Gabriel, y este proyecto nació cuando necesitaba imprimir algo para un trabajo universitario.
-                    Los precios eran tan altos que casi equivalían a comprar una impresora. Esa frustración me llevó
-                    a crear Prototyp3D: un espacio para apoyar a quienes inician, cobrando lo justo y ofreciendo
-                    acompañamiento real en el proceso creativo.
-                </p>
-            </>
-        ),
-    },
-];
+export default function AboutPage() {
+  return (
+    <ScrollLayout>
+      <main className="pt-24 pb-16 px-6 md:px-12 max-w-6xl mx-auto font-garet">
+        <div className="flex flex-col md:flex-row items-center gap-12 mb-16">
+          <div className="flex-1">
+            <h1 className="text-4xl md:text-5xl font-extrabold text-azul-oscuro mb-6">
+              Sobre Prototyp3D
+            </h1>
+            <p className="text-lg text-gray-700 mb-4">
+              Somos un estudio de fabricación digital ubicado en <span className="font-bold text-naranja">Santa Tecla, El Salvador</span>, dedicado a democratizar el acceso a la tecnología de impresión 3D.
+            </p>
+            <p className="text-lg text-gray-700 mb-4">
+              Nacimos con la misión de ayudar a estudiantes y emprendedores a materializar sus ideas sin las barreras de los altos costos de manufactura tradicional. Hoy, servimos a empresas de diversos sectores, desde la medicina hasta la arquitectura.
+            </p>
+            <p className="text-lg text-gray-700">
+              En Prototyp3D, no solo imprimimos piezas; ofrecemos soluciones integrales que incluyen asesoría en diseño, selección de materiales y optimización de producción.
+            </p>
+          </div>
+          <div className="flex-1 relative h-[400px] w-full rounded-2xl overflow-hidden shadow-xl">
+             {/* Placeholder image until a real team/workshop photo is available */}
+             <div className="absolute inset-0 bg-gray-200 flex items-center justify-center text-gray-400">
+               <span className="text-xl">Foto del Taller / Equipo</span>
+             </div>
+          </div>
+        </div>
 
-export default function NosotrosPage() {
-    const [active, setActive] = useState('mision');
-    const currentSection = sections.find((s) => s.key === active);
-
-    return (
-        <main className="min-h-screen flex flex-col md:flex-row relative">
-            {/* Contenido */}
-            <div className="flex-1 p-8 md:p-16 flex items-center justify-center bg-white">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={currentSection?.key}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.4 }}
-                        className="max-w-2xl"
-                    >
-                        {currentSection?.content}
-                    </motion.div>
-                </AnimatePresence>
-            </div>
-
-            {/* Pestañas estilo cartapacio */}
-            <div className="fixed right-0 top-1/2 transform -translate-y-1/2 z-30 hidden md:flex flex-col items-end gap-4 pr-2">
-                {sections.map((s) => (
-                    <button
-                        key={s.key}
-                        onClick={() => setActive(s.key)}
-                        className={`w-40 py-2 px-4 rounded-l-full shadow-md font-bold flex items-center gap-2 transition-all duration-300 
-                            ${s.color} ${active === s.key ? 'scale-105' : 'opacity-80 hover:opacity-100'}`}
-                    >
-                        {s.icon}
-                        <span className="text-sm">{s.title}</span>
-                    </button>
-                ))}
-            </div>
-
-            {/* Pestañas móviles (abajo tipo tabs) */}
-            <div className="md:hidden flex justify-around fixed bottom-0 w-full bg-white border-t z-40">
-                {sections.map((s) => (
-                    <button
-                        key={s.key}
-                        onClick={() => setActive(s.key)}
-                        className={`flex-1 text-xs py-2 font-bold ${active === s.key ? 'text-naranja' : 'text-gray-500'}`}
-                    >
-                        {s.title}
-                    </button>
-                ))}
-            </div>
-        </main>
-    );
+        <div className="grid md:grid-cols-2 gap-12 bg-gray-50 p-8 rounded-3xl">
+          <div>
+            <h2 className="text-2xl font-bold text-azul-oscuro mb-4">Nuestra Misión</h2>
+            <p className="text-gray-600">
+              Impulsar la innovación en El Salvador proporcionando servicios de fabricación digital accesibles, rápidos y de alta calidad, permitiendo que cualquier idea pueda convertirse en realidad física.
+            </p>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-azul-oscuro mb-4">¿Por qué elegirnos?</h2>
+            <ul className="space-y-3 text-gray-600">
+              <li className="flex items-center gap-2">
+                <span className="text-naranja font-bold">✓</span> Asesoría técnica personalizada
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-naranja font-bold">✓</span> Equipos de última generación (Bambu Lab, Elegoo Saturn)
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-naranja font-bold">✓</span> Rapidez en entregas urgentes
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-naranja font-bold">✓</span> Ubicación céntrica en Santa Tecla
+              </li>
+            </ul>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </ScrollLayout>
+  );
 }

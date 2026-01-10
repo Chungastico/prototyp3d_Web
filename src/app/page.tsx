@@ -1,28 +1,37 @@
-'use client';
+import HomeClient from '@/components/home/HomeClient';
+import { Metadata } from 'next';
 
-import Services from '@/components/home/SectionServices';
-import { useState } from 'react';
-import Hero from '../components/home/Hero';
-import ScrollLayout from '../components/layout/ScrollLayout';
-import IntroTransition from '../components/home/IntroTransition'; 
-import Timeline from '../components/home/Timeline';
-import Footer from '@/components/layout/Footer';
+export const metadata: Metadata = {
+  title: 'Impresión 3D en El Salvador | Prototyp3D - Santa Tecla, San Salvador',
+  description: 'Servicio profesional de impresión 3D en El Salvador. Creamos prototipos, maquetas y piezas finales. Cobertura en Santa Tecla, San Salvador, Soyapango, Zona Rosa y todo el país.',
+  keywords: ['impresión 3D El Salvador', 'prototipado 3D', 'impresoras 3D', 'Santa Tecla', 'San Salvador', 'Soyapango', 'Zona Rosa', 'modelado 3D', 'maquetas'],
+  openGraph: {
+    title: 'Impresión 3D en El Salvador – Prototyp3D',
+    description: 'Materializamos tus ideas con impresión 3D, diseño y fabricación digital en El Salvador.',
+    url: 'https://www.prototyp3dsv.com',
+    siteName: 'Prototyp3D',
+    images: [
+      {
+        url: '/images/HeroBambu.png', // We will verify this path later or update it
+        width: 1200,
+        height: 630,
+        alt: 'Impresora 3D Bambu Lab en Prototyp3D El Salvador',
+      },
+    ],
+    locale: 'es_SV',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Prototyp3D | Impresión 3D Experta en El Salvador',
+    description: 'Servicios de impresión 3D y diseño para estudiantes y empresas. Ubicados en Santa Tecla, atendemos todo El Salvador.',
+    images: ['/images/HeroBambu.png'],
+  },
+  alternates: {
+    canonical: 'https://www.prototyp3dsv.com',
+  },
+};
 
 export default function Home() {
-    const [introFinished, setIntroFinished] = useState(false);
-
-    return (
-        <main className="relative">
-        {!introFinished && <IntroTransition onFinish={() => setIntroFinished(true)} />}
-
-        {introFinished && (
-            <ScrollLayout>
-                <Hero />
-                <Services />
-                <Timeline />
-                <Footer />
-            </ScrollLayout>
-        )}
-        </main>
-    );
+    return <HomeClient />;
 }
