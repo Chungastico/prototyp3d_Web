@@ -4,16 +4,20 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { GestionTrabajo } from './types';
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Calendar, DollarSign, Package } from "lucide-react";
+import { Plus, Search, Calendar, DollarSign, Package, Trash2, Edit } from "lucide-react";
 import { CreateJobModal } from '@/components/admin/jobs/CreateJobModal';
 import { JobDetails } from '@/components/admin/jobs/JobDetails';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-export function JobsList() {
+export interface JobsListProps {
+    onEdit: (job: GestionTrabajo) => void;
+    refreshKey: number;
+}
+
+export function JobsList({ onEdit, refreshKey }: JobsListProps) {
     const [jobs, setJobs] = useState<GestionTrabajo[]>([]);
     const [loading, setLoading] = useState(true);
-    const [createModalOpen, setCreateModalOpen] = useState(false);
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
     const fetchJobs = async () => {
@@ -22,9 +26,9 @@ export function JobsList() {
             .from('gestion_trabajos')
             .select(`
                 *,
-                cliente:clientes(nombre)
+                cliente:clientes(nombre_cliente)
             `)
-            .order('created_at', { ascending: false });
+            .order('fecha_solicitado', { ascending: false });
 
         if (error) {
             console.error("Error fetching jobs:", error);
@@ -34,9 +38,31 @@ export function JobsList() {
         setLoading(false);
     };
 
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (!window.confirm("¿Seguro que deseas eliminar este pedido? Esta acción no se puede deshacer.")) return;
+
+        const { error } = await supabase
+            .from('gestion_trabajos')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error("Error deleting job:", error);
+            alert("Error al eliminar");
+        } else {
+            fetchJobs();
+        }
+    };
+
+    const handleEdit = (e: React.MouseEvent, job: GestionTrabajo) => {
+        e.stopPropagation();
+        onEdit(job);
+    };
+
     useEffect(() => {
         fetchJobs();
-    }, []);
+    }, [refreshKey]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -60,13 +86,6 @@ export function JobsList() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-end">
-                <Button onClick={() => setCreateModalOpen(true)} className="bg-naranja hover:bg-orange-600 text-white">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nuevo Pedido
-                </Button>
-            </div>
-
             {loading ? (
                 <div className="flex justify-center py-12">
                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-naranja border-t-transparent"></div>
@@ -101,7 +120,7 @@ export function JobsList() {
                                             {job.nombre_proyecto}
                                         </h3>
                                         <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                                            <span className="font-medium text-gray-700">{(job as any).cliente?.nombre || 'Cliente Desconocido'}</span>
+                                            <span className="font-medium text-gray-700">{(job as any).cliente?.nombre_cliente || 'Cliente Desconocido'}</span>
                                         </p>
                                         <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
                                             <div className="flex items-center gap-1">
@@ -121,16 +140,30 @@ export function JobsList() {
                                     </span>
                                 </div>
                             </div>
+                            
+                            {/* Action Buttons (Bottom) */}
+                            <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-50">
+                                <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="h-8 text-xs text-blue-600 border-blue-100 hover:bg-blue-50" 
+                                    onClick={(e) => handleEdit(e, job)}
+                                >
+                                    <Edit className="h-3 w-3 mr-1.5" /> Editar
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="h-8 text-xs text-red-600 border-red-100 hover:bg-red-50" 
+                                    onClick={(e) => handleDelete(e, job.id)}
+                                >
+                                    <Trash2 className="h-3 w-3 mr-1.5" /> Eliminar
+                                </Button>
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
-
-            <CreateJobModal 
-                open={createModalOpen} 
-                onOpenChange={setCreateModalOpen} 
-                onJobCreated={fetchJobs} 
-            />
         </div>
     );
 }

@@ -7,9 +7,10 @@ import { useEffect } from 'react';
 type Props = {
     children: React.ReactNode;
     requiredRole?: 'admin' | 'cliente'; 
+    allowedRoles?: string[];
 };
 
-export default function ProtectedPage({ children, requiredRole }: Props) {
+export default function ProtectedPage({ children, requiredRole, allowedRoles }: Props) {
     const { user, role, loading } = useAuth();
     const router = useRouter();
 
@@ -19,13 +20,18 @@ export default function ProtectedPage({ children, requiredRole }: Props) {
                 router.replace('/auth');
             } else if (requiredRole && role !== requiredRole) {
                 router.replace('/'); // redirige si no tiene el rol requerido
+            } else if (allowedRoles && role && !allowedRoles.includes(role)) {
+                router.replace('/');
             }
         }
-    }, [user, role, loading, requiredRole, router]);
+    }, [user, role, loading, requiredRole, allowedRoles, router]);
 
-    if (loading || !user || (requiredRole && role !== requiredRole)) {
-        return null; // o loader si prefieres
+    if (loading || !user) {
+        return null;
     }
+
+    if (requiredRole && role !== requiredRole) return null;
+    if (allowedRoles && role && !allowedRoles.includes(role)) return null;
 
     return <>{children}</>;
 }

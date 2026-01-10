@@ -1,7 +1,7 @@
 // src/components/admin/Sidebar.tsx
 'use client';
 
-import { Home, Package, ShoppingCart, BarChart2 } from 'lucide-react';
+import { Home, Package, ShoppingCart, Users, DollarSign, LayoutDashboard, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { UserButton } from '@clerk/nextjs';
@@ -42,9 +42,11 @@ const Sidebar = ({ collapsed }: SidebarProps) => {
             {/* Navegación */}
             <nav className="space-y-6">
                 <SidebarLink icon={<Home size={28} />} label="Inicio" href="/admin" collapsed={collapsed} />
-                <SidebarLink icon={<Package size={28} />} label="Productos" href="/admin/productos" collapsed={collapsed} />
-                <SidebarLink icon={<ShoppingCart size={28} />} label="Órdenes" href="/admin/ordenes" collapsed={collapsed} />
-                <SidebarLink icon={<BarChart2 size={28} />} label="Estadísticas" href="/admin/estadisticas" collapsed={collapsed} />
+                <SidebarLink icon={<ClipboardList size={28} />} label="Proyectos Internos" href="/admin/projects" collapsed={collapsed} />
+                <SidebarLink icon={<ShoppingCart size={28} />} label="Pedidos" href="/admin/jobs" collapsed={collapsed} />
+                <SidebarLink icon={<Package size={28} />} label="Inventario" href="/admin/inventory" collapsed={collapsed} />
+                <SidebarLink icon={<Users size={28} />} label="Clientes" href="/admin/clients" collapsed={collapsed} />
+                <SidebarLink icon={<DollarSign size={28} />} label="Finanzas" href="/admin/finances" collapsed={collapsed} />
             </nav>
 
             {/* Perfil y logout */}

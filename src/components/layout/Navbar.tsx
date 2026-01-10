@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { Menu, X, User } from 'lucide-react';
+import { UserButton } from "@clerk/nextjs";
 import { useAuth } from '@/context/AuthContext';
 
 type NavbarProps = {
@@ -13,11 +14,13 @@ type NavbarProps = {
 
 export default function Navbar({ visible }: NavbarProps) {
     const [menuOpen, setMenuOpen] = useState(false);
-    const { user, logoutUser } = useAuth();
+    const { user, role } = useAuth(); // role should come from useAuth now
 
     useEffect(() => {
         document.body.style.overflow = menuOpen ? 'hidden' : '';
     }, [menuOpen]);
+
+    const dashboardLink = role === 'admin' ? '/admin' : '/dashboard';
 
     return (
         <nav
@@ -69,16 +72,14 @@ export default function Navbar({ visible }: NavbarProps) {
 
                 {user ? (
                     <>
-                        <Link href="/perfil" className="hover:text-beige-claro transition flex items-center gap-1">
-                            <User size={20} />
-                            Perfil
+                        <Link href={dashboardLink}>
+                            <button className="bg-naranja text-azul-oscuro font-extrabold py-2 px-5 rounded-full hover:bg-opacity-80 transition">
+                                Dashboard
+                            </button>
                         </Link>
-                        <button
-                            onClick={() => logoutUser()}
-                            className="bg-naranja text-azul-oscuro font-extrabold py-2 px-5 rounded-full hover:bg-opacity-80 transition"
-                        >
-                            Cerrar sesión
-                        </button>
+                        <div className="scale-125">
+                            <UserButton afterSignOutUrl="/" />
+                        </div>
                     </>
                 ) : (
                     <>
@@ -148,31 +149,27 @@ export default function Navbar({ visible }: NavbarProps) {
                             {user ? (
                                 <>
                                     <Link
-                                        href="/perfil"
+                                        href={dashboardLink}
                                         onClick={() => setMenuOpen(false)}
-                                        className="hover:text-beige-claro transition flex items-center gap-1"
+                                        className="w-full"
                                     >
-                                        <User size={20} />
-                                        Perfil
+                                        <button className="w-full bg-naranja text-azul-oscuro font-extrabold py-2 px-5 rounded-full hover:bg-opacity-80 transition">
+                                            Dashboard
+                                        </button>
                                     </Link>
-                                    <button
-                                        onClick={() => {
-                                            logoutUser();
-                                            setMenuOpen(false);
-                                        }}
-                                        className="bg-naranja text-azul-oscuro font-extrabold py-2 px-5 rounded-full hover:bg-opacity-80 transition"
-                                    >
-                                        Cerrar sesión
-                                    </button>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className="text-sm text-gray-400">Tu cuenta:</span>
+                                        <UserButton afterSignOutUrl="/" />
+                                    </div>
                                 </>
                             ) : (
                                 <>
-                                    <Link href="/auth" onClick={() => setMenuOpen(false)} className="mb-2">
+                                    <Link href="/auth" onClick={() => setMenuOpen(false)} className="mb-2 w-full">
                                         <button className="bg-naranja text-azul-oscuro font-extrabold py-2 px-5 rounded-full hover:bg-opacity-80 transition w-full">
                                             Iniciar sesión
                                         </button>
                                     </Link>
-                                    <Link href="/auth" onClick={() => setMenuOpen(false)}>
+                                    <Link href="/auth" onClick={() => setMenuOpen(false)} className="w-full">
                                         <button className="border border-naranja text-naranja font-extrabold py-2 px-5 rounded-full hover:bg-naranja hover:text-azul-oscuro transition w-full">
                                             Registrarse
                                         </button>

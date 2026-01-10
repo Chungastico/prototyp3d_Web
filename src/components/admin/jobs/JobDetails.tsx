@@ -4,11 +4,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { GestionTrabajo, PiezaTrabajo, ExtraAplicado } from './types';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, Calendar, CheckCircle, Truck, Package, DollarSign, FileBox, ExternalLink } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, CheckCircle, Truck, Package, DollarSign, FileBox, ExternalLink, Pencil, Trash2 } from "lucide-react";
 import { PieceForm } from './PieceForm';
 import { ExtrasSelector } from './ExtrasSelector';
+import { CreateJobModal } from './CreateJobModal';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { QuotePDF } from './QuotePDF';
 
 interface JobDetailsProps {
     jobId: string;
@@ -20,18 +24,27 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
     const [pieces, setPieces] = useState<PiezaTrabajo[]>([]);
     const [extras, setExtras] = useState<ExtraAplicado[]>([]);
     const [extraNames, setExtraNames] = useState<Record<string, string>>({});
+    const [filamentNames, setFilamentNames] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
+    const [isClient, setIsClient] = useState(false);
     
     // Modals
     const [pieceModalOpen, setPieceModalOpen] = useState(false);
+    const [projectEditModalOpen, setProjectEditModalOpen] = useState(false);
+
+    const [pieceToEdit, setPieceToEdit] = useState<PiezaTrabajo | null>(null);
+    
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         
-        // 1. Fetch Job
+        // 1. Fetch Job with client name
         const { data: jobData } = await supabase
             .from('gestion_trabajos')
-            .select(`*, cliente:clientes(nombre)`)
+            .select(`*, cliente:clientes(*)`)
             .eq('id', jobId)
             .single();
             
@@ -40,6 +53,25 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
             .from('piezas_trabajo')
             .select('*')
             .eq('trabajo_id', jobId);
+
+        // 2b. Fetch Filament Info if pieces exist
+        if (piecesData && piecesData.length > 0) {
+            const filamentIds = Array.from(new Set(piecesData.map(p => p.filamento_id).filter(Boolean)));
+            if (filamentIds.length > 0) {
+                const { data: filaments } = await supabase
+                    .from('inventario_filamento')
+                    .select('id, color_tipo_filamento')
+                    .in('id', filamentIds);
+                
+                const fMap: Record<string, string> = {};
+                if (filaments) {
+                    filaments.forEach(f => {
+                         fMap[f.id] = f.color_tipo_filamento;
+                    });
+                }
+                setFilamentNames(fMap);
+            }
+        }
 
         // 3. Fetch Extras (Job Level)
         const { data: extrasData } = await supabase
@@ -97,32 +129,39 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
         }
     };
 
+    const deletePiece = async (id: string) => {
+        if (!confirm('¿Estás seguro de que quieres eliminar esta pieza?')) return;
+        
+        const { error } = await supabase
+            .from('piezas_trabajo')
+            .delete()
+            .eq('id', id);
+        
+        if (error) {
+            alert('Error al eliminar pieza');
+            console.error(error);
+        } else {
+            fetchData();
+        }
+    };
+
     // --- Calculations ---
     const totalPiecesSale = pieces.reduce((sum, p) => sum + p.total_venta, 0);
     const totalPiecesCost = pieces.reduce((sum, p) => sum + p.total_costo, 0);
+
+    // Detailed Cost Breakdown
+    const totalMaterialCost = pieces.reduce((sum, p) => sum + (p.costo_filamento_snapshot * p.cantidad), 0);
+    const totalMachineCost = pieces.reduce((sum, p) => sum + (p.tiempo_impresora_h * p.costo_impresora_h_rate * p.cantidad), 0);
+    const totalModelingCost = pieces.reduce((sum, p) => sum + (p.tiempo_modelado_h * p.costo_modelado_h_rate * p.cantidad), 0);
     
-    // Assuming es_costo / es_venta are reliably set in extras_aplicados (we set them to true in simpler logic)
+    // Extras
     const totalExtrasSale = extras.reduce((sum, e) => sum + (e.es_venta ? e.subtotal : 0), 0);
-    const totalExtrasCost = extras.reduce((sum, e) => sum + (e.es_costo ? e.precio_unitario_snapshot * e.cantidad : 0), 0); // Re-calculate cost? Or use subtotal if subtotal = cost?
-    // In our logic, 'subtotal' = qty * unit_price (which acts as sales price or cost depending on context).
-    // Usually extras have a fixed cost and a fixed sales price, but for simplicity we used one 'precio_unitario'.
-    // If the catalog price is the SALE price, then COST is likely distinct.
-    // However, the prompt says "Calcular subtotal... Marcar es_costo=true y es_venta=true".
-    // This implies the price is used for BOTH or just simplified. 
-    // Let's assume subtotal is SALE price. And Cost is ... well, the prompt didn't specify a cost field for extras.
-    // Let's assume for extras, Cost ~= Sale (passthrough) OR Cost = 0 if it's service?
-    // To be safe and show *some* margin, usually cost < sale. 
-    // But sticking to prompt: "Total venta (suma de piezas + extras), Total costo (suma de piezas + extras)".
-    // So distinct cost field is required or we reuse subtotal.
-    // Given strict schema, `extras_aplicados` checks: `subtotal` is the only value.
-    // So `Total Cost` of Extra = `subtotal`? Then profit is 0.
-    // Let's assume `subtotal` adds to both Cost and Sale for now, implying 0 profit on extras unless logic changes.
-    // OR we can assume extras are pure profit services?
-    // Let's stick to: Sale = subtotal. Cost = subtotal (conservative, 0 profit). 
-    // Wait, "Envío" ($3) -> Customer pays $3, we pay $3. Profit 0. Correct.
-    // "Empaquetado" ($1) -> Cost $1.
-    // So yes, Extras add to both. 
+    const totalExtrasCost = extras.reduce((sum, e) => sum + (e.es_costo ? e.subtotal : 0), 0);
     
+    // Production Stats
+    const totalPrintTime = pieces.reduce((sum, p) => sum + (p.tiempo_impresora_h * p.cantidad), 0);
+    const totalFilament = pieces.reduce((sum, p) => sum + (p.gramos_usados * p.cantidad), 0);
+
     const grandTotalSale = totalPiecesSale + totalExtrasSale;
     const grandTotalCost = totalPiecesCost + totalExtrasCost;
     const grandTotalProfit = grandTotalSale - grandTotalCost;
@@ -133,19 +172,52 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
     return (
         <div className="space-y-6 pb-20">
             {/* Header */}
+            {/* ... (Header code remains unchanged) ... */}
             <div className="flex items-center justify-between bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                 <div className="flex items-center gap-4">
                      <Button variant="ghost" onClick={onBack} size="sm">
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">{job.nombre_proyecto}</h1>
-                        <p className="text-gray-500 text-sm">{(job as any).cliente?.nombre}</p>
+                        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                            {job.nombre_proyecto}
+                            {/* PDF Export Button */}
+                            {isClient && (
+                                <PDFDownloadLink
+                                    document={
+                                        <QuotePDF 
+                                            job={job} 
+                                            pieces={pieces} 
+                                            extras={extras} 
+                                            client={(job as any).cliente} 
+                                            extraNames={extraNames}
+                                            filamentNames={filamentNames}
+                                        />
+                                    }
+                                    fileName={`${(job.es_empresa && job.nombre_empresa 
+                                        ? job.nombre_empresa 
+                                        : ((job as any).cliente?.nombre_cliente || 'Cotizacion')
+                                    ).replace(/\s+/g, '_')}_${format(new Date(), 'ddMMyy')}.pdf`}
+                                >
+                                    {({ loading }) => (
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            disabled={loading}
+                                            className="ml-2 h-8 text-xs bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:border-red-300"
+                                        >
+                                            {loading ? 'Generando...' : 'Exportar PDF'}
+                                        </Button>
+                                    )}
+                                </PDFDownloadLink>
+                            )}
+                        </h1>
+                        <p className="text-gray-500 text-sm">{(job as any).cliente?.nombre_cliente}</p>
                     </div>
                 </div>
                 
                 <div className="flex gap-2">
-                    {['cotizado', 'aprobado', 'en_produccion', 'listo', 'entregado'].map((s) => (
+                    {['aprobado', 'entregado'].map((s) => (
                         <button
                             key={s}
                             onClick={() => updateStatus(s)}
@@ -155,9 +227,15 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                 : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
                             }`}
                         >
-                            {s === 'en_produccion' ? 'En Producción' : s.charAt(0).toUpperCase() + s.slice(1)}
+                            {s.charAt(0).toUpperCase() + s.slice(1)}
                         </button>
                     ))}
+                    {/* Read-only indicators for automated statuses */}
+                    {['cotizado', 'en_produccion', 'listo'].includes(job.estado) && (
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full border bg-gray-900 text-white border-gray-900`}>
+                            {job.estado === 'en_produccion' ? 'En Producción' : job.estado.charAt(0).toUpperCase() + job.estado.slice(1)}
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -165,14 +243,14 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                 
                 {/* Main Content: Pieces & Extras */}
                 <div className="lg:col-span-2 space-y-6">
-                    
+                    {/* ... (Pieces and Extras sections remain unchanged) ... */}
                     {/* Pieces Section */}
                     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                                 <Package className="h-4 w-4" /> Piezas
                             </h3>
-                            <Button size="sm" onClick={() => setPieceModalOpen(true)} className="bg-white border border-gray-200 text-gray-900 hover:bg-gray-50">
+                            <Button size="sm" onClick={() => { setPieceToEdit(null); setPieceModalOpen(true); }} className="bg-white border border-gray-200 text-gray-900 hover:bg-gray-50">
                                 + Agregar Pieza
                             </Button>
                         </div>
@@ -189,16 +267,40 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                             <th className="px-4 py-3 text-right">Costo U.</th>
                                             <th className="px-4 py-3 text-right">Precio U.</th>
                                             <th className="px-4 py-3 text-right">Subtotal</th>
+                                            <th className="px-4 py-3 text-right">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {pieces.map(p => (
-                                            <tr key={p.id} className="hover:bg-gray-50/50">
+                                            <tr key={p.id} className="hover:bg-gray-50/50 group">
                                                 <td className="px-4 py-3 font-medium text-gray-900">{p.nombre_pieza}</td>
                                                 <td className="px-4 py-3 text-center">{p.cantidad}</td>
                                                 <td className="px-4 py-3 text-right text-gray-500">${p.costo_total_unit.toFixed(2)}</td>
                                                 <td className="px-4 py-3 text-right text-naranja font-medium">${p.precio_final_unit.toFixed(2)}</td>
                                                 <td className="px-4 py-3 text-right font-bold">${p.total_venta.toFixed(2)}</td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-blue-600"
+                                                        onClick={() => {
+                                                            setPieceToEdit(p);
+                                                            setPieceModalOpen(true);
+                                                        }}
+                                                    >
+                                                        <span className="sr-only">Editar</span>
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-600"
+                                                        onClick={() => deletePiece(p.id)}
+                                                    >
+                                                        <span className="sr-only">Eliminar</span>
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -257,6 +359,28 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                 {/* Right Sidebar: Summary & Info */}
                 <div className="space-y-6">
                     
+                    {/* Production Summary */}
+                    <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+                        <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
+                            <Package className="h-5 w-5 text-naranja" /> Producción
+                        </h3>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                <span className="text-xs text-gray-500 block mb-1">Tiempo Total</span>
+                                <span className="text-lg font-bold text-gray-900">
+                                    {Math.floor(totalPrintTime)}h {Math.round((totalPrintTime % 1) * 60)}m
+                                </span>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                <span className="text-xs text-gray-500 block mb-1">Filamento Total</span>
+                                <span className="text-lg font-bold text-gray-900">
+                                    {Math.round(totalFilament)}g
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Financial Summary */}
                     <div className="bg-gray-900 text-white rounded-xl p-6 shadow-lg">
                         <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
@@ -264,15 +388,35 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                         </h3>
                         
                         <div className="space-y-3 text-sm">
-                            <div className="flex justify-between text-gray-300">
-                                <span>Total Costo Producción</span>
-                                <span>${totalPiecesCost.toFixed(2)}</span>
+                            <div className="text-gray-400 font-semibold text-xs uppercase mb-1">Costos Desglosados</div>
+                            <div className="flex justify-between text-gray-300 pl-2">
+                                <span>Material (Filamento)</span>
+                                <span>${totalMaterialCost.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-gray-300">
-                                <span>Total Extras</span>
-                                <span>${totalExtrasSale.toFixed(2)}</span>
+                            <div className="flex justify-between text-gray-300 pl-2">
+                                <span>Máquina/Luz</span>
+                                <span>${totalMachineCost.toFixed(2)}</span>
                             </div>
+                            {totalModelingCost > 0 && (
+                                <div className="flex justify-between text-gray-300 pl-2">
+                                    <span>Modelado 3D</span>
+                                    <span>${totalModelingCost.toFixed(2)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between text-gray-300 pl-2">
+                                <span>Extras/Envíos</span>
+                                <span>${totalExtrasCost.toFixed(2)}</span>
+                            </div>
+
+                            <div className="h-px bg-gray-700 my-2"></div>
+                            
+                            <div className="flex justify-between text-gray-200">
+                                <span className="font-semibold">Total Costos</span>
+                                <span>${grandTotalCost.toFixed(2)}</span>
+                            </div>
+                            
                              <div className="h-px bg-gray-700 my-2"></div>
+                             
                             <div className="flex justify-between text-xl font-bold">
                                 <span>Total Venta</span>
                                 <span>${grandTotalSale.toFixed(2)}</span>
@@ -327,11 +471,19 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                             )}
                         </div>
                         
-                         {job.thumbnail_url && (
+                        {job.thumbnail_url && (
                             <div className="mt-4 rounded-lg overflow-hidden border border-gray-100">
                                 <img src={job.thumbnail_url} alt="Thumbnail" className="w-full h-32 object-cover" />
                             </div>
                         )}
+
+                        <Button 
+                            variant="outline" 
+                            className="w-full mt-4 flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900"
+                            onClick={() => setProjectEditModalOpen(true)}
+                        >
+                            <Pencil className="h-4 w-4" /> Editar Proyecto
+                        </Button>
                     </div>
 
                 </div>
@@ -339,9 +491,20 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
 
             <PieceForm 
                 open={pieceModalOpen} 
-                onOpenChange={setPieceModalOpen} 
+                onOpenChange={(open) => {
+                    setPieceModalOpen(open);
+                    if (!open) setPieceToEdit(null);
+                }}
                 jobId={jobId} 
                 onPieceAdded={fetchData} 
+                pieceToEdit={pieceToEdit}
+            />
+
+            <CreateJobModal 
+                open={projectEditModalOpen} 
+                onOpenChange={setProjectEditModalOpen} 
+                onJobCreated={fetchData}
+                jobToEdit={job}
             />
         </div>
     );

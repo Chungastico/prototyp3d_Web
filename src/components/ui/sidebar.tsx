@@ -117,8 +117,11 @@ export function Sidebar({ className, children }: React.HTMLAttributes<HTMLDivEle
 export function SidebarHeader({ className, children }: React.HTMLAttributes<HTMLDivElement>) {
   const { open } = useSidebar()
   return (
-    <div className={cn("flex items-center h-16 px-4 border-b border-azul-black", className)}>
-       {open ? children : <div className="text-sm font-bold truncate text-naranja">P3D</div>}
+    <div className={cn("flex items-center h-16 px-4 border-b border-azul-black transition-all duration-300 ease-in-out", 
+      open ? "justify-between" : "justify-center",
+      className)}>
+       {open && <div className="flex-1 min-w-0">{children}</div>}
+       <SidebarTrigger className={cn("shrink-0", open ? "ml-2" : "")}/>
     </div>
   )
 }

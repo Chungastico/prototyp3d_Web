@@ -16,15 +16,20 @@ import { Cliente } from './types';
 import { Search, Upload, X, Check, Loader2, UserPlus, Package } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { format, addDays } from "date-fns";
+import { es } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
 
 interface CreateJobModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onJobCreated: () => void;
+    jobToEdit?: any; // Using any for simplicity as we map full object
 }
 
-export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobModalProps) {
+export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: CreateJobModalProps) {
     const [loading, setLoading] = useState(false);
     
     // Form State
@@ -47,26 +52,45 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
     const [isCreatingClient, setIsCreatingClient] = useState(false);
     const [newClientName, setNewClientName] = useState('');
 
+    // Company State
+    const [isCompany, setIsCompany] = useState(false);
+    const [companyName, setCompanyName] = useState('');
+
     useEffect(() => {
         if (open) {
             fetchClients();
-            // Reset form
-            setNombreProyecto('');
-            setSelectedClientId(null);
-            setFechaSolicitado(new Date().toISOString().split('T')[0]);
-            setFechaEntrega('');
-            setThumbnailFile(null);
-            setProjectFile(null);
-            setFusionUrl('');
+            
+            if (jobToEdit) {
+                setNombreProyecto(jobToEdit.nombre_proyecto);
+                setSelectedClientId(jobToEdit.cliente_id);
+                setFechaSolicitado(jobToEdit.fecha_solicitado.split('T')[0]); // Ensure format
+                setFechaEntrega(jobToEdit.fecha_entrega ? jobToEdit.fecha_entrega.split('T')[0] : '');
+                setFusionUrl(jobToEdit.fusion_project_url || '');
+                setIsCompany(jobToEdit.es_empresa || false);
+                setCompanyName(jobToEdit.nombre_empresa || '');
+            } else {
+                // Reset form
+                setNombreProyecto('');
+                setSelectedClientId(null);
+                setFechaSolicitado(new Date().toISOString().split('T')[0]);
+                setFechaEntrega('');
+                setThumbnailFile(null);
+                setProjectFile(null);
+                setFusionUrl('');
+                setIsCompany(false);
+                setCompanyName('');
+            }
         }
-    }, [open]);
+    }, [open, jobToEdit]);
 
     const fetchClients = async () => {
         const { data, error } = await supabase
             .from('clientes')
             .select('*')
-            .order('nombre');
-        
+            .order('nombre_cliente');
+        if (error) {
+            console.error("Error fetching clients:", error);
+        }
         if (data) setClients(data);
     };
 
@@ -76,7 +100,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
         
         const { data, error } = await supabase
             .from('clientes')
-            .insert([{ nombre: newClientName }])
+            .insert([{ nombre_cliente: newClientName }])
             .select()
             .single();
 
@@ -130,19 +154,39 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
             }
 
             // 3. Create Job
-            const { error } = await supabase
-                .from('gestion_trabajos')
-                .insert([{
-                    nombre_proyecto: nombreProyecto,
-                    cliente_id: selectedClientId,
-                    fecha_solicitado: fechaSolicitado,
-                    fecha_entrega: fechaEntrega,
+            // 3. Create or Update Job
+            const payload: any = {
+                nombre_proyecto: nombreProyecto,
+                cliente_id: selectedClientId,
+                fecha_solicitado: fechaSolicitado,
+                fecha_entrega: fechaEntrega,
+                // Only set status defaults on create
+                ...(!jobToEdit && { 
                     estado: 'cotizado',
-                    estado_pago: 'pendiente',
-                    thumbnail_url: thumbnailUrl,
-                    fusion_project_url: fusionUrl || null,
-                    files: projectFileUrl ? { url: projectFileUrl, name: projectFile?.name } : null
-                }]);
+                    estado_pago: 'pendiente'
+                 }),
+                fusion_project_url: fusionUrl || null,
+                es_empresa: isCompany,
+                nombre_empresa: isCompany ? companyName : null,
+            };
+
+            if (thumbnailUrl) payload.thumbnail_url = thumbnailUrl;
+            if (projectFileUrl) payload.files = { url: projectFileUrl, name: projectFile?.name };
+
+            let error;
+            
+            if (jobToEdit) {
+                 const { error: updateError } = await supabase
+                    .from('gestion_trabajos')
+                    .update(payload)
+                    .eq('id', jobToEdit.id);
+                 error = updateError;
+            } else {
+                const { error: insertError } = await supabase
+                    .from('gestion_trabajos')
+                    .insert([payload]);
+                error = insertError;
+            }
 
             if (error) throw error;
 
@@ -160,7 +204,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Crear Nuevo Pedido</DialogTitle>
+                    <DialogTitle>{jobToEdit ? 'Editar Pedido' : 'Crear Nuevo Pedido'}</DialogTitle>
                 </DialogHeader>
                 
                 <div className="space-y-6 py-4">
@@ -175,6 +219,32 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
                         />
                     </div>
 
+                    {/* Company Switch */}
+                    <div className="flex flex-col gap-4 p-4 border rounded-lg bg-gray-50/50">
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="esEmpresa" className="cursor-pointer">¿Es compra de empresa?</Label>
+                            <input
+                                type="checkbox"
+                                id="esEmpresa"
+                                checked={isCompany}
+                                onChange={(e) => setIsCompany(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-naranja focus:ring-naranja"
+                            />
+                        </div>
+                        
+                        {isCompany && (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                <Label htmlFor="companyName">Nombre de la Empresa</Label>
+                                <Input 
+                                    id="companyName" 
+                                    value={companyName} 
+                                    onChange={(e) => setCompanyName(e.target.value)} 
+                                    placeholder="Ej. ESROBOTICA S.A. de C.V."
+                                />
+                            </div>
+                        )}
+                    </div>
+
                     {/* Client Selector */}
                     <div className="space-y-2 flex flex-col">
                         <Label>Cliente</Label>
@@ -187,7 +257,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
                                     className="justify-between font-normal"
                                 >
                                     {selectedClientId
-                                        ? clients.find((c) => c.id === selectedClientId)?.nombre
+                                        ? clients.find((c) => c.id === selectedClientId)?.nombre_cliente
                                         : "Seleccionar cliente..."}
                                     <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
@@ -214,7 +284,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
                                             {clients.map((client) => (
                                                 <CommandItem
                                                     key={client.id}
-                                                    value={client.nombre}
+                                                    value={client.nombre_cliente}
                                                     onSelect={() => {
                                                         setSelectedClientId(client.id);
                                                         setOpenClientCombo(false);
@@ -226,7 +296,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
                                                             selectedClientId === client.id ? "opacity-100" : "opacity-0"
                                                         )}
                                                     />
-                                                    {client.nombre}
+                                                    {client.nombre_cliente}
                                                 </CommandItem>
                                             ))}
                                         </CommandGroup>
@@ -255,23 +325,82 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
 
                     {/* Dates */}
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="fechaSolicitado">Fecha Solicitud</Label>
-                            <Input 
-                                id="fechaSolicitado" 
-                                type="date"
-                                value={fechaSolicitado} 
-                                onChange={(e) => setFechaSolicitado(e.target.value)} 
-                            />
+                        <div className="space-y-2 flex flex-col">
+                            <Label>Fecha Solicitud</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "justify-start text-left font-normal",
+                                            !fechaSolicitado && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {fechaSolicitado ? format(new Date(fechaSolicitado), "PPP", { locale: es }) : <span>Seleccionar fecha</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={fechaSolicitado ? new Date(fechaSolicitado) : undefined}
+                                        onSelect={(date) => date && setFechaSolicitado(format(date, 'yyyy-MM-dd'))}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="fechaEntrega">Fecha Entrega</Label>
-                            <Input 
-                                id="fechaEntrega" 
-                                type="date"
-                                value={fechaEntrega} 
-                                onChange={(e) => setFechaEntrega(e.target.value)} 
-                            />
+                        <div className="space-y-2 flex flex-col">
+                            <Label>Fecha Entrega</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "justify-start text-left font-normal",
+                                            !fechaEntrega && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {fechaEntrega ? format(new Date(fechaEntrega), "PPP", { locale: es }) : <span>Seleccionar fecha</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <div className="p-3 border-b border-gray-100 flex gap-2 overflow-x-auto">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="text-xs h-7 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                                            onClick={() => setFechaEntrega(format(addDays(new Date(), 1), 'yyyy-MM-dd'))}
+                                        >
+                                            Mañana
+                                        </Button>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="text-xs h-7 bg-naranja/10 text-naranja hover:bg-naranja/20 hover:text-orange-700"
+                                            onClick={() => setFechaEntrega(format(addDays(new Date(), 3), 'yyyy-MM-dd'))}
+                                        >
+                                            3 Días
+                                        </Button>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="text-xs h-7 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800"
+                                            onClick={() => setFechaEntrega(format(addDays(new Date(), 7), 'yyyy-MM-dd'))}
+                                        >
+                                            1 Sem
+                                        </Button>
+                                    </div>
+                                    <Calendar
+                                        mode="single"
+                                        selected={fechaEntrega ? new Date(fechaEntrega) : undefined}
+                                        onSelect={(date) => date && setFechaEntrega(format(date, 'yyyy-MM-dd'))}
+                                        initialFocus
+                                        disabled={(date) => date < new Date(fechaSolicitado)}
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                     </div>
 
@@ -337,7 +466,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
                         className="bg-naranja hover:bg-orange-600 text-white"
                     >
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Crear Pedido
+                        {jobToEdit ? 'Guardar Cambios' : 'Crear Pedido'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -46,7 +46,7 @@ export function ProjectsHeader({
     return (
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
             <div className="flex items-center gap-4">
-                <h1 className="text-3xl font-bold text-gray-800 tracking-tight">{getViewTitle()}</h1>
+
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="gap-2">

@@ -1,18 +1,77 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { JobsList } from '@/components/admin/jobs/JobsList';
+import { PiecesKanban } from '@/components/admin/jobs/PiecesKanban';
+import { LayoutGrid, Puzzle, Plus } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { CreateJobModal } from '@/components/admin/jobs/CreateJobModal';
+import { GestionTrabajo } from '@/components/admin/jobs/types';
 
 export default function JobsPage() {
+  const [currentView, setCurrentView] = useState<'projects' | 'pieces'>('projects');
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [jobToEdit, setJobToEdit] = useState<GestionTrabajo | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleJobCreated = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
   return (
     <div className="p-8 max-w-[1600px] mx-auto min-h-screen bg-gray-50/30">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Pedidos</h1>
-          <p className="text-gray-500 mt-1">Administra cotizaciones, producción y entregas.</p>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex bg-white rounded-lg p-1 border border-gray-200">
+          <Button
+            variant={currentView === 'projects' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setCurrentView('projects')}
+            className={`gap-2 ${currentView === 'projects' ? 'bg-naranja hover:bg-orange-600 text-white' : 'text-gray-600'}`}
+          >
+            <LayoutGrid className="h-4 w-4" />
+            Por Proyecto
+          </Button>
+          <Button
+            variant={currentView === 'pieces' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setCurrentView('pieces')}
+            className={`gap-2 ${currentView === 'pieces' ? 'bg-naranja hover:bg-orange-600 text-white' : 'text-gray-600'}`}
+          >
+            <Puzzle className="h-4 w-4" />
+            Por Piezas
+          </Button>
         </div>
+
+        <Button 
+          onClick={() => { setJobToEdit(null); setCreateModalOpen(true); }} 
+          className="bg-naranja hover:bg-orange-600 text-white"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Nuevo Pedido
+        </Button>
       </div>
-      <JobsList />
+
+      {currentView === 'projects' ? (
+        <JobsList 
+            onEdit={(job) => {
+                setJobToEdit(job);
+                setCreateModalOpen(true);
+            }} 
+            refreshKey={refreshKey}
+        />
+      ) : (
+        <PiecesKanban />
+      )}
+
+      <CreateJobModal 
+        open={createModalOpen} 
+        onOpenChange={(open) => {
+            setCreateModalOpen(open);
+            if (!open) setJobToEdit(null);
+        }} 
+        onJobCreated={handleJobCreated} 
+        jobToEdit={jobToEdit}
+      />
     </div>
   );
 }

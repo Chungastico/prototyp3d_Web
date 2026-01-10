@@ -12,9 +12,12 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Button } from "@/components/ui/button";
+import { SortableProjectCard } from '@/components/admin/projects/ProjectCard';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,6 +56,7 @@ export default function ProjectsPage() {
     const [currentView, setCurrentView] = useState<'avances' | 'entregable' | 'calendario' | 'por_proyecto'>('avances');
     const [showCompleted, setShowCompleted] = useState(false);
     const [filterResponsible, setFilterResponsible] = useState<string | null>(null);
+    const [activeId, setActiveId] = useState<string | null>(null);
 
     // Dialog State
     const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
@@ -306,8 +310,13 @@ export default function ProjectsPage() {
         })
     );
 
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveId(event.active.id as string);
+    };
+
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
+        setActiveId(null);
         
         if (!over) return;
 
@@ -438,9 +447,10 @@ export default function ProjectsPage() {
             ) : (
                 <>
                     {currentView === 'avances' && (
-                        <DndContext 
+						<DndContext 
                             sensors={sensors} 
                             collisionDetection={closestCenter} 
+                            onDragStart={(event) => setActiveId(event.active.id as string)}
                             onDragEnd={handleDragEnd}
                         >
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
@@ -466,6 +476,18 @@ export default function ProjectsPage() {
                                     onDelete={handleDeleteClick} 
                                 />
                             </div>
+                            <DragOverlay>
+                                {activeId ? (
+                                    <div className="transform rotate-3 cursor-grabbing">
+                                        <SortableProjectCard 
+                                            project={projects.find(p => p.id === activeId)!} 
+                                            onEdit={editProject} 
+                                            onDelete={handleDeleteClick} 
+                                            isOverlay
+                                        />
+                                    </div>
+                                ) : null}
+                            </DragOverlay>
                         </DndContext>
                     )}
 
@@ -542,6 +564,18 @@ export default function ProjectsPage() {
                                     </Button>
                                 </div>
                             </div>
+                             <DragOverlay>
+                                {activeId ? (
+                                    <div className="transform rotate-3 cursor-grabbing opacity-90 scale-105">
+                                        <SortableProjectCard 
+                                            project={projects.find(p => p.id === activeId)!} 
+                                            onEdit={editProject} 
+                                            onDelete={handleDeleteClick} 
+                                            isOverlay
+                                        />
+                                    </div>
+                                ) : null}
+                            </DragOverlay>
                         </DndContext>
                     )}
                 </>

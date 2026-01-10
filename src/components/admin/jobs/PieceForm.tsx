@@ -30,7 +30,7 @@ interface PieceFormProps {
     onPieceAdded: () => void;
 }
 
-export function PieceForm({ open, onOpenChange, jobId, onPieceAdded }: PieceFormProps) {
+export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit }: PieceFormProps & { pieceToEdit?: PiezaTrabajo | null }) {
     const [loading, setLoading] = useState(false);
     const [filaments, setFilaments] = useState<InventarioFilamento[]>([]);
     
@@ -44,7 +44,13 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded }: PieceForm
     const [cantidad, setCantidad] = useState(1);
     const [selectedFilamentId, setSelectedFilamentId] = useState('');
     const [gramosUnit, setGramosUnit] = useState(0);
-    const [tiempoImp, setTiempoImp] = useState(0); // hours
+    
+    // New State for Split Time
+    const [printingHours, setPrintingHours] = useState(0);
+    const [printingMinutes, setPrintingMinutes] = useState(0);
+    // Derived total hours for calculation
+    const totalPrintingHours = printingHours + (printingMinutes / 60);
+
     const [tiempoMod, setTiempoMod] = useState(0); // hours
     
     // Financials (Manual)
@@ -54,34 +60,54 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded }: PieceForm
     const selectedFilament = filaments.find(f => f.id === selectedFilamentId);
     const precioGramo = selectedFilament?.precio_por_gramo || 0;
     const costoFilamento = gramosUnit * precioGramo;
-    const costoTotalUnit = costoFilamento + (tiempoImp * COSTO_IMPRESORA_H) + (tiempoMod * COSTO_MODELADO_H);
+    const costoTotalUnit = costoFilamento + (totalPrintingHours * COSTO_IMPRESORA_H) + (tiempoMod * COSTO_MODELADO_H);
     
-    const suggestedMin = tiempoImp * 1.0; // Placeholder logic from prompt (tiempo * 1) ? Re-read prompt: "venta_min_unit = tiempo_impresora_h * 1"
-    const suggestedMax = tiempoImp * 2.0;
+    const suggestedMin = totalPrintingHours * 1.0; 
+    const suggestedMax = totalPrintingHours * 2.0;
 
     const gananciaUnit = precioFinalUnit - costoTotalUnit;
 
     useEffect(() => {
         if (open) {
             fetchFilaments();
-            // Reset
-            setNombre('');
-            setDescripcion('');
-            setCantidad(1);
-            setGramosUnit(0);
-            setTiempoImp(0);
-            setTiempoMod(0);
-            setPrecioFinalUnit(0);
-            setSelectedFilamentId('');
+            if (pieceToEdit) {
+                setNombre(pieceToEdit.nombre_pieza);
+                setDescripcion(pieceToEdit.descripcion_pieza || '');
+                setCantidad(pieceToEdit.cantidad);
+                setGramosUnit(pieceToEdit.gramos_usados);
+                
+                const hours = Math.floor(pieceToEdit.tiempo_impresora_h);
+                const minutes = Math.round((pieceToEdit.tiempo_impresora_h - hours) * 60);
+                setPrintingHours(hours);
+                setPrintingMinutes(minutes);
+                
+                setTiempoMod(pieceToEdit.tiempo_modelado_h || 0);
+                setPrecioFinalUnit(pieceToEdit.precio_final_unit);
+                setSelectedFilamentId(pieceToEdit.filamento_id);
+            } else {
+                // Reset
+                setNombre('');
+                setDescripcion('');
+                setCantidad(1);
+                setGramosUnit(0);
+                setPrintingHours(0);
+                setPrintingMinutes(0);
+                setTiempoMod(0);
+                setPrecioFinalUnit(0);
+                setSelectedFilamentId('');
+            }
         }
-    }, [open]);
+    }, [open, pieceToEdit]);
 
     const fetchFilaments = async () => {
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from('inventario_filamento')
             .select('*')
-            .order('nombre');
-        if (data)  setFilaments(data);
+            .order('color_tipo_filamento');
+        if (error) {
+            console.error("Error fetching filaments:", error);
+        }
+        if (data) setFilaments(data);
     };
 
     const handleSubmit = async () => {
@@ -89,7 +115,7 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded }: PieceForm
         setLoading(true);
 
         try {
-            // 1. Insert Piece
+            // 1. Prepare Payload
             const piecePayload = {
                 trabajo_id: jobId,
                 nombre_pieza: nombre,
@@ -101,7 +127,7 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded }: PieceForm
                 precio_por_gramo_snapshot: precioGramo,
                 costo_filamento_snapshot: costoFilamento,
                 
-                tiempo_impresora_h: tiempoImp,
+                tiempo_impresora_h: totalPrintingHours,
                 tiempo_modelado_h: tiempoMod,
                 costo_impresora_h_rate: COSTO_IMPRESORA_H,
                 costo_modelado_h_rate: COSTO_MODELADO_H,
@@ -118,38 +144,60 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded }: PieceForm
                 total_ganancia: gananciaUnit * cantidad
             };
 
-            const { data: pieceData, error: pieceError } = await supabase
-                .from('piezas_trabajo')
-                .insert([piecePayload])
-                .select()
-                .single();
+            let pieceId = pieceToEdit?.id;
 
-            if (pieceError) throw pieceError;
+            if (pieceToEdit) {
+                 // Update
+                 const { error: updateError } = await supabase
+                    .from('piezas_trabajo')
+                    .update(piecePayload)
+                    .eq('id', pieceToEdit.id);
 
-            // 2. Insert Consumo Filamento
-            // "Every piece must generate a related consumo_filamento row"
-            // "gramos_usados must be GLOBAL (unit * qty)"
-            if (pieceData) {
+                 if (updateError) throw updateError;
+            } else {
+                 // Insert
+                 const { data: pieceData, error: pieceError } = await supabase
+                    .from('piezas_trabajo')
+                    .insert([piecePayload])
+                    .select()
+                    .single();
+
+                 if (pieceError) throw pieceError;
+                 pieceId = pieceData.id;
+            }
+
+            // 2. Update/Insert Consumo Filamento
+            // Simple approach: Delete existing consumption for this piece and recreate it.
+            // This handles changing filament type, quantity, etc. cleanly.
+            if (pieceId) {
+                // Delete old consumption
+                await supabase
+                    .from('consumo_filamento')
+                    .delete()
+                    .eq('pieza_id', pieceId);
+
+                // Create new consumption
+                const gramosTotales = gramosUnit * cantidad;
                 const consumoPayload = {
-                    pieza_id: pieceData.id,
+                    pieza_id: pieceId,
                     filamento_id: selectedFilamentId,
-                    gramos_usados: gramosUnit * cantidad, 
+                    gramos_usados: gramosTotales,
                     precio_por_gramo: precioGramo,
-                    costo_filamento: (gramosUnit * cantidad) * precioGramo // Total cost of filament used
+                    costo_filamento: gramosTotales * precioGramo
                 };
 
                 const { error: consumoError } = await supabase
                     .from('consumo_filamento')
                     .insert([consumoPayload]);
-                
-                if (consumoError) console.error("Error creating consumption:", consumoError);
+
+                if (consumoError) console.error("Error creating/updating consumption:", consumoError);
             }
 
             onPieceAdded();
             onOpenChange(false);
 
         } catch (error) {
-            console.error("Error creating piece:", error);
+            console.error("Error saving piece:", error);
         } finally {
             setLoading(false);
         }
@@ -173,7 +221,13 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded }: PieceForm
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Cantidad</Label>
-                                <Input type="number" min="1" value={cantidad} onChange={e => setCantidad(parseInt(e.target.value) || 1)} />
+                                <Input 
+                                    type="number" 
+                                    min="1" 
+                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    value={cantidad} 
+                                    onChange={e => setCantidad(parseInt(e.target.value) || 1)} 
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label>Filamento</Label>
@@ -183,25 +237,63 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded }: PieceForm
                                     </SelectTrigger>
                                     <SelectContent>
                                         {filaments.map(f => (
-                                            <SelectItem key={f.id} value={f.id}>{f.nombre} ({f.color}) - ${f.precio_por_gramo}/g</SelectItem>
+                                            <SelectItem key={f.id} value={f.id}>
+                                                {f.color_tipo_filamento}
+                                                {f.marca ? ` - ${f.marca}` : ''} ({f.material}) - ${f.precio_por_gramo.toFixed(2)}/g
+                                            </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Gramos (Unit)</Label>
-                                <Input type="number" value={gramosUnit} onChange={e => setGramosUnit(parseFloat(e.target.value) || 0)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Horas Imp.</Label>
-                                <Input type="number" value={tiempoImp} onChange={e => setTiempoImp(parseFloat(e.target.value) || 0)} />
+                                <Input 
+                                    type="number" 
+                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    value={gramosUnit === 0 ? '' : gramosUnit} 
+                                    onChange={e => setGramosUnit(parseFloat(e.target.value) || 0)} 
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label>Horas Mod.</Label>
-                                <Input type="number" value={tiempoMod} onChange={e => setTiempoMod(parseFloat(e.target.value) || 0)} />
+                                <Input 
+                                    type="number" 
+                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    value={tiempoMod === 0 ? '' : tiempoMod} 
+                                    onChange={e => setTiempoMod(parseFloat(e.target.value) || 0)} 
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Tiempo Impresión</Label>
+                            <div className="flex gap-4">
+                                <div className="flex-1 relative">
+                                    <Input 
+                                        type="number" 
+                                        placeholder="0" 
+                                        className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none pr-12"
+                                        min="0"
+                                        value={printingHours === 0 ? '' : printingHours} 
+                                        onChange={e => setPrintingHours(parseInt(e.target.value) || 0)} 
+                                    />
+                                    <span className="absolute right-3 top-2.5 text-sm text-gray-500 pointer-events-none">Horas</span>
+                                </div>
+                                <div className="flex-1 relative">
+                                    <Input 
+                                        type="number" 
+                                        placeholder="0" 
+                                        className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none pr-14"
+                                        min="0"
+                                        max="59"
+                                        value={printingMinutes === 0 ? '' : printingMinutes} 
+                                        onChange={e => setPrintingMinutes(parseInt(e.target.value) || 0)} 
+                                    />
+                                    <span className="absolute right-3 top-2.5 text-sm text-gray-500 pointer-events-none">Minutos</span>
+                                </div>
                             </div>
                         </div>
 
@@ -225,8 +317,8 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded }: PieceForm
                                     <span>${costoFilamento.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-gray-600">
-                                    <span>Impresión ({tiempoImp}h * ${COSTO_IMPRESORA_H}):</span>
-                                    <span>${(tiempoImp * COSTO_IMPRESORA_H).toFixed(2)}</span>
+                                    <span>Impresión ({totalPrintingHours.toFixed(2)}h * ${COSTO_IMPRESORA_H}):</span>
+                                    <span>${(totalPrintingHours * COSTO_IMPRESORA_H).toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-gray-600">
                                     <span>Modelado ({tiempoMod}h * ${COSTO_MODELADO_H}):</span>
