@@ -2,9 +2,9 @@ import HomeClient from '@/components/home/HomeClient';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Impresión 3D en El Salvador | Prototyp3D - Santa Tecla, San Salvador',
-  description: 'Servicio profesional de impresión 3D en El Salvador. Creamos prototipos, maquetas y piezas finales. Cobertura en Santa Tecla, San Salvador, Soyapango, Zona Rosa y todo el país.',
-  keywords: ['impresión 3D El Salvador', 'prototipado 3D', 'impresoras 3D', 'Santa Tecla', 'San Salvador', 'Soyapango', 'Zona Rosa', 'modelado 3D', 'maquetas'],
+  title: 'Impresión 3D en El Salvador | Prototyp3D',
+  description: 'Servicio profesional de impresión 3D en El Salvador. Creamos prototipos, maquetas y piezas finales. Cobertura en todo el país.',
+  keywords: ['impresión 3D El Salvador', 'prototipado 3D', 'impresoras 3D', 'El Salvador', 'modelado 3D', 'maquetas'],
   openGraph: {
     title: 'Impresión 3D en El Salvador – Prototyp3D',
     description: 'Materializamos tus ideas con impresión 3D, diseño y fabricación digital en El Salvador.',
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Prototyp3D | Impresión 3D Experta en El Salvador',
-    description: 'Servicios de impresión 3D y diseño para estudiantes y empresas. Ubicados en Santa Tecla, atendemos todo El Salvador.',
+    description: 'Servicios de impresión 3D y diseño para estudiantes y empresas. Atendemos todo El Salvador.',
     images: ['/images/HeroBambu.png'],
   },
   alternates: {

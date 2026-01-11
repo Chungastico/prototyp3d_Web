@@ -10,27 +10,11 @@ export default function StructuredData() {
     email: 'prototyp3d.sv@gmail.com',
     address: {
       '@type': 'PostalAddress',
-      addressLocality: 'Santa Tecla',
-      addressRegion: 'La Libertad',
+      addressLocality: 'San Salvador',
+      addressRegion: 'San Salvador',
       addressCountry: 'SV',
     },
     areaServed: [
-      {
-        '@type': 'City',
-        name: 'Santa Tecla',
-      },
-      {
-        '@type': 'City',
-        name: 'San Salvador',
-      },
-      {
-        '@type': 'City',
-        name: 'Soyapango',
-      },
-      {
-        '@type': 'Place',
-        name: 'Zona Rosa',
-      },
       {
         '@type': 'Country',
         name: 'El Salvador',
@@ -54,7 +38,7 @@ export default function StructuredData() {
       'https://www.instagram.com/prototyp3d.sv',
     ],
     priceRange: '$$',
-    description: 'Servicios de impresión 3D FDM y resina, diseño y prototipado en El Salvador. Atendemos estudiantes, emprendedores y empresas.',
+    description: 'Servicios de impresión 3D FDM, diseño y prototipado en El Salvador. Atendemos estudiantes, emprendedores y empresas.',
   };
 
   return (

@@ -2,15 +2,12 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 // Protege las rutas que requieran autenticación si es necesario
-// const isProtectedRoute = createRouteMatcher(['/admin(.*)']);
+const isProtectedRoute = createRouteMatcher(['/admin(.*)']);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth();
-
-  // Redirección eliminada: El usuario puede permanecer en landing page.
-  // if (userId && req.nextUrl.pathname === '/') {
-  //   return NextResponse.redirect(new URL('/admin', req.url));
-  // }
+  if (isProtectedRoute(req)) {
+      await auth.protect();
+  }
 });
 
 export const config = {

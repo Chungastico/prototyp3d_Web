@@ -5,6 +5,7 @@ import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter,
 import { Package, LayoutDashboard, FileText, ShoppingCart, Users, FolderKanban, DollarSign } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
 import Image from "next/image"
+import ProtectedPage from "@/components/ProtectedPage"
 
 export default function AdminLayoutClient({
   children,
@@ -59,7 +60,9 @@ export default function AdminLayoutClient({
       </Sidebar>
       <main className="flex-1 overflow-auto bg-gray-100 transition-all duration-300">
           <div className="p-6">
-              {children}
+              <ProtectedPage requiredRole="admin">
+                  {children}
+              </ProtectedPage>
           </div>
       </main>
     </SidebarProvider>

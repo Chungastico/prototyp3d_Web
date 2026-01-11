@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { UserButton } from "@clerk/nextjs";
 import { useAuth } from '@/context/AuthContext';
+import { createPortal } from 'react-dom';
 
 import {
   NavigationMenu,
@@ -26,11 +27,18 @@ type NavbarProps = {
 
 export default function Navbar({ visible }: NavbarProps) {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const { user, role } = useAuth();
 
     useEffect(() => {
-        document.body.style.overflow = menuOpen ? 'hidden' : '';
-    }, [menuOpen]);
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (mounted) {
+             document.body.style.overflow = menuOpen ? 'hidden' : '';
+        }
+    }, [menuOpen, mounted]);
 
     const dashboardLink = role === 'admin' ? '/admin' : '/dashboard';
 
@@ -182,127 +190,136 @@ export default function Navbar({ visible }: NavbarProps) {
                 </div>
             </div>
 
-            {/* Overlay con blur */}
-            {menuOpen && (
-                <div
-                    className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 md:hidden"
-                    onClick={() => setMenuOpen(false)}
-                />
-            )}
+            {/* Portal for Mobile Menu */}
+            {mounted && createPortal(
+                <AnimatePresence>
+                    {menuOpen && (
+                        <>
+                             {/* Overlay con blur */}
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[9998] md:hidden"
+                                onClick={() => setMenuOpen(false)}
+                            />
 
-            {/* Drawer lateral derecho (Móvil) */}
-            <AnimatePresence>
-                {menuOpen && (
-                    <motion.div
-                        key="drawer"
-                        initial={{ clipPath: 'circle(0% at 100% 10%)' }}
-                        animate={{ clipPath: 'circle(150% at 100% 10%)' }}
-                        exit={{ clipPath: 'circle(0% at 100% 10%)' }}
-                        transition={{ duration: 0.5, ease: 'easeInOut' }}
-                        className="fixed top-0 right-0 h-full w-64 bg-azul-oscuro z-50 md:hidden shadow-lg border-l border-naranja/20"
-                    >
-                        <div className="flex flex-col items-start p-6 space-y-6 text-lg">
-                            <button
-                                onClick={() => setMenuOpen(false)}
-                                className="self-end text-naranja"
+                            {/* Drawer lateral derecho (Móvil) */}
+                            <motion.div
+                                key="drawer"
+                                initial={{ clipPath: 'circle(0% at 100% 10%)' }}
+                                animate={{ clipPath: 'circle(150% at 100% 10%)' }}
+                                exit={{ clipPath: 'circle(0% at 100% 10%)' }}
+                                transition={{ duration: 0.5, ease: 'easeInOut' }}
+                                className="fixed top-0 right-0 h-full w-[85vw] max-w-sm z-[9999] md:hidden shadow-lg border-l border-naranja/20"
                             >
-                                <X size={28} />
-                            </button>
-                            <Link
-                                href="/"
-                                onClick={() => setMenuOpen(false)}
-                                className="hover:text-white transition w-full border-b border-white/10 pb-2"
-                            >
-                                Inicio
-                            </Link>
-                            <div className="w-full border-b border-white/10 pb-2">
-                                <Link
-                                    href="/servicios"
-                                    onClick={() => setMenuOpen(false)}
-                                    className="hover:text-white transition w-full block mb-2"
-                                >
-                                    Servicios
-                                </Link>
-                                <div className="pl-4 flex flex-col gap-2 text-base text-white/80">
-                                    <Link href="/impresion-3d-el-salvador" onClick={() => setMenuOpen(false)} className="hover:text-white">
-                                        • Impresión 3D El Salvador
-                                    </Link>
-                                    <Link href="/impresion-3d-estudiantes" onClick={() => setMenuOpen(false)} className="hover:text-white">
-                                        • Para Estudiantes
-                                    </Link>
-                                    <Link href="/impresion-3d-emprendedores" onClick={() => setMenuOpen(false)} className="hover:text-white">
-                                        • Para Emprendedores
-                                    </Link>
-                                    <Link href="/impresion-3d-empresas" onClick={() => setMenuOpen(false)} className="hover:text-white">
-                                        • Para Empresas
-                                    </Link>
-                                </div>
-                            </div>
-                            <div className="w-full border-b border-white/10 pb-2">
-                                <span className="block mb-2 text-white">Recursos</span>
-                                <div className="pl-4 flex flex-col gap-2 text-base text-white/80">
-                                    <Link href="/proyectos" onClick={() => setMenuOpen(false)} className="hover:text-white">
-                                        • Proyectos
-                                    </Link>
-                                    <Link href="/materiales-impresion-3d" onClick={() => setMenuOpen(false)} className="hover:text-white">
-                                        • Materiales
-                                    </Link>
-                                    <Link href="/como-funciona-impresion-3d" onClick={() => setMenuOpen(false)} className="hover:text-white">
-                                        • Cómo Funciona
-                                    </Link>
-                                </div>
-                            </div>
-                             <Link
-                                href="/nosotros"
-                                onClick={() => setMenuOpen(false)}
-                                className="hover:text-white transition w-full border-b border-white/10 pb-2"
-                            >
-                                Nosotros
-                            </Link>
-                             <Link
-                                href="/contacto"
-                                onClick={() => setMenuOpen(false)}
-                                className="hover:text-white transition w-full border-b border-white/10 pb-2"
-                            >
-                                Contacto
-                            </Link>
-
-                            <div className="pt-4 w-full">
-                                {user ? (
-                                    <>
-                                        <Link
-                                            href={dashboardLink}
+                                <div className="w-full h-full bg-[#262C4D] relative">
+                                    <div className="flex flex-col items-start p-6 space-y-6 text-lg h-full overflow-y-auto font-garet font-extrabold">
+                                        <button
                                             onClick={() => setMenuOpen(false)}
-                                            className="w-full"
+                                            className="self-end text-naranja"
                                         >
-                                            <button className="w-full bg-naranja text-azul-oscuro font-extrabold py-3 px-5 rounded-full hover:bg-opacity-80 transition mb-4">
-                                                Dashboard
-                                            </button>
+                                            <X size={28} />
+                                        </button>
+                                        <Link
+                                            href="/"
+                                            onClick={() => setMenuOpen(false)}
+                                            className="text-naranja hover:text-white transition w-full border-b border-white/10 pb-2"
+                                        >
+                                            Inicio
                                         </Link>
-                                        <div className="flex items-center gap-2 justify-center">
-                                            <span className="text-sm text-gray-400">Tu cuenta:</span>
-                                            <UserButton afterSignOutUrl="/" />
+                                        <div className="w-full border-b border-white/10 pb-2">
+                                            <Link
+                                                href="/servicios"
+                                                onClick={() => setMenuOpen(false)}
+                                                className="text-naranja hover:text-white transition w-full block mb-2"
+                                            >
+                                                Servicios
+                                            </Link>
+                                            <div className="pl-4 flex flex-col gap-2 text-base text-white/90 font-medium">
+                                                <Link href="/impresion-3d-el-salvador" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
+                                                    • Impresión 3D El Salvador
+                                                </Link>
+                                                <Link href="/impresion-3d-estudiantes" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
+                                                    • Para Estudiantes
+                                                </Link>
+                                                <Link href="/impresion-3d-emprendedores" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
+                                                    • Para Emprendedores
+                                                </Link>
+                                                <Link href="/impresion-3d-empresas" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
+                                                    • Para Empresas
+                                                </Link>
+                                            </div>
                                         </div>
-                                    </>
-                                ) : (
-                                    <div className="flex flex-col gap-3">
-                                        <Link href="/auth" onClick={() => setMenuOpen(false)} className="w-full">
-                                            <button className="bg-naranja text-azul-oscuro font-extrabold py-3 px-5 rounded-full hover:bg-opacity-80 transition w-full">
-                                                Iniciar sesión
-                                            </button>
+                                        <div className="w-full border-b border-white/10 pb-2">
+                                            <span className="block mb-2 text-naranja">Recursos</span>
+                                            <div className="pl-4 flex flex-col gap-2 text-base text-white/90 font-medium">
+                                                <Link href="/proyectos" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
+                                                    • Proyectos
+                                                </Link>
+                                                <Link href="/materiales-impresion-3d" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
+                                                    • Materiales
+                                                </Link>
+                                                <Link href="/como-funciona-impresion-3d" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
+                                                    • Cómo Funciona
+                                                </Link>
+                                            </div>
+                                        </div>
+                                        <Link
+                                            href="/nosotros"
+                                            onClick={() => setMenuOpen(false)}
+                                            className="text-naranja hover:text-white transition w-full border-b border-white/10 pb-2"
+                                        >
+                                            Nosotros
                                         </Link>
-                                        <Link href="/auth" onClick={() => setMenuOpen(false)} className="w-full">
-                                            <button className="border border-naranja text-naranja font-extrabold py-3 px-5 rounded-full hover:bg-naranja hover:text-azul-oscuro transition w-full">
-                                                Registrarse
-                                            </button>
+                                        <Link
+                                            href="/contacto"
+                                            onClick={() => setMenuOpen(false)}
+                                            className="text-naranja hover:text-white transition w-full border-b border-white/10 pb-2"
+                                        >
+                                            Contacto
                                         </Link>
+
+                                        <div className="pt-4 w-full">
+                                            {user ? (
+                                                <>
+                                                    <Link
+                                                        href={dashboardLink}
+                                                        onClick={() => setMenuOpen(false)}
+                                                        className="w-full"
+                                                    >
+                                                        <button className="w-full bg-naranja text-azul-oscuro font-extrabold py-3 px-5 rounded-full hover:bg-opacity-80 transition mb-4">
+                                                            Dashboard
+                                                        </button>
+                                                    </Link>
+                                                    <div className="flex items-center gap-2 justify-center">
+                                                        <span className="text-sm text-gray-400">Tu cuenta:</span>
+                                                        <UserButton afterSignOutUrl="/" />
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="flex flex-col gap-3">
+                                                    <Link href="/auth" onClick={() => setMenuOpen(false)} className="w-full">
+                                                        <button className="bg-naranja text-azul-oscuro font-extrabold py-3 px-5 rounded-full hover:bg-opacity-80 transition w-full">
+                                                            Iniciar sesión
+                                                        </button>
+                                                    </Link>
+                                                    <Link href="/auth" onClick={() => setMenuOpen(false)} className="w-full">
+                                                        <button className="border border-naranja text-naranja font-extrabold py-3 px-5 rounded-full hover:bg-naranja hover:text-azul-oscuro transition w-full">
+                                                            Registrarse
+                                                        </button>
+                                                    </Link>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </nav>
     );
 }

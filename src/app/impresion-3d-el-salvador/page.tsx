@@ -6,7 +6,7 @@ import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
   title: 'Impresión 3D en El Salvador - Prototyp3D | Servicio Profesional',
-  description: 'Prototyp3D es tu estudio de impresión 3D en El Salvador. Ofrecemos manufactura aditiva FDM y Resina, diseño 3D y prototipado rápido en Santa Tecla.',
+  description: 'Prototyp3D es tu estudio de impresión 3D en El Salvador. Ofrecemos manufactura aditiva FDM, diseño 3D y prototipado rápido en El Salvador.',
   keywords: ['impresión 3D El Salvador', 'impresoras 3D El Salvador', 'servicio impresión 3D', 'maquetas 3D El Salvador', 'prototipado rápido'],
 };
 
@@ -22,7 +22,7 @@ export default function Impresion3DElSalvador() {
                 Impresión 3D en <span className="text-naranja">El Salvador</span>
               </h1>
               <p className="text-xl md:text-2xl text-gray-300 max-w-2xl">
-                Tu aliado local para fabricar lo imposible. Desde Santa Tecla para todo el país, convertimos archivos digitales en objetos físicos de alta calidad.
+                Tu aliado local para fabricar lo imposible. Servicio para todo el país, convertimos archivos digitales en objetos físicos de alta calidad.
               </p>
               <div className="flex flex-wrap gap-4 pt-4">
                 <Link href="/contacto">
@@ -56,7 +56,7 @@ export default function Impresion3DElSalvador() {
                           Es un proceso de manufactura aditiva donde creamos objetos tridimensionales capa por capa a partir de un archivo digital. A diferencia de los métodos tradicionales, la impresión 3D permite crear geometrías complejas sin necesidad de moldes costosos.
                       </p>
                       <p>
-                          En <span className="font-bold">Prototyp3D El Salvador</span>, utilizamos tecnologías FDM (filamento fundido) para piezas resistentes y SLA (resina) para detalles milimétricos.
+                          En <span className="font-bold">Prototyp3D El Salvador</span>, utilizamos tecnologías FDM (filamento fundido) para piezas resistentes.
                       </p>
                   </div>
               </div>
@@ -93,9 +93,9 @@ export default function Impresion3DElSalvador() {
         <section className="bg-naranja/10 py-16 px-6">
           <div className="max-w-4xl mx-auto text-center space-y-6">
               <MapPin className="w-12 h-12 text-naranja mx-auto" />
-              <h2 className="text-3xl md:text-4xl font-bold text-azul-oscuro">Servicio en Santa Tecla y Todo El Salvador</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-azul-oscuro">Servicio en Todo El Salvador</h2>
               <p className="text-xl text-gray-700">
-                  Estamos ubicados estratégicamente en Santa Tecla, La Libertad. Ofrecemos envíos a todo el país a través de servicios de paquetería local, asegurando que tus piezas lleguen seguras a San Salvador, Soyapango, Santa Ana o San Miguel.
+                  Ofrecemos envíos a todo el país a través de servicios de paquetería local, asegurando que tus piezas lleguen seguras a San Salvador, Soyapango, Santa Ana o San Miguel.
               </p>
                <Link href="/contacto">
                   <button className="mt-4 text-azul-oscuro font-bold underline text-lg hover:text-naranja transition">

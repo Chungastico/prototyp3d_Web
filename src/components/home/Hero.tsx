@@ -109,7 +109,7 @@ export default function Hero() {
                         ref={subtitleRef}
                         className="text-lg sm:text-xl md:text-2xl lg:text-3xl mb-6 md:mb-8 font-normal"
                     >
-                        Te ayudamos a materializar conceptos con impresión 3D accesible y confiable en San Salvador.
+                        Te ayudamos a materializar conceptos con impresión 3D accesible y confiable en El Salvador.
                     </p>
                     <button
                         ref={buttonRef}
