@@ -14,7 +14,7 @@ export default function Hero() {
     const imageRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const tl = gsap.timeline({ defaults: { ease: 'power3.out', duration: 1 } });
+        const tl = gsap.timeline({ defaults: { ease: 'power3.out', duration: 0.8 } });
 
         // Animación inicial
         tl.fromTo(
@@ -32,12 +32,12 @@ export default function Hero() {
             buttonRef.current,
             { opacity: 0, y: 30, scale: 0.95 },
             { opacity: 1, y: 0, scale: 1 },
-            '-=0.5'
+            '-=0.6'
         )
         .fromTo(
             imageRef.current,
             { opacity: 0, y: 40 },
-            { opacity: 1, y: 0, duration: 1 },
+            { opacity: 1, y: 0, duration: 0.8 },
             '-=0.6'
         );
 
