@@ -9,20 +9,18 @@ import Timeline from '@/components/home/Timeline';
 import Footer from '@/components/layout/Footer';
 
 export default function HomeClient() {
-    const [introFinished, setIntroFinished] = useState(false);
+    const [showIntro, setShowIntro] = useState(true);
 
     return (
         <main className="relative">
-        {!introFinished && <IntroTransition onFinish={() => setIntroFinished(true)} />}
+            {showIntro && <IntroTransition onFinish={() => setShowIntro(false)} />}
 
-        {introFinished && (
             <ScrollLayout>
                 <Hero />
                 <Services />
                 <Timeline />
                 <Footer />
             </ScrollLayout>
-        )}
         </main>
     );
 }

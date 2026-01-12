@@ -17,7 +17,7 @@ export default function IntroTransition({ onFinish }: { onFinish: () => void }) 
         brandRef.current?.classList.add('brand-final');
 
         Flip.from(state, {
-            duration: 1.2,
+            duration: 0.4,
             ease: 'power3.inOut',
             absolute: true,
             onComplete() {

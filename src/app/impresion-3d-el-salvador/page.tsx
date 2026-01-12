@@ -45,6 +45,7 @@ export default function Impresion3DElSalvador() {
                     alt="Prototipo P2S Impresión 3D"
                     fill
                     className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 500px"
                   />
                </div>
             </div>

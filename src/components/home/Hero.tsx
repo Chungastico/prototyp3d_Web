@@ -113,7 +113,7 @@ export default function Hero() {
                     </p>
                     <button
                         ref={buttonRef}
-                        className="bg-naranja text-azul-oscuro text-base sm:text-lg md:text-xl font-extrabold py-3 sm:py-4 px-6 sm:px-8 rounded-full hover:bg-white hover:text-naranja transition"
+                        className="bg-white border border-white text-azul-oscuro text-base sm:text-lg md:text-xl font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-full hover:bg-azul-oscuro hover:text-white transition"
                     >
                         Explorar servicios
                     </button>

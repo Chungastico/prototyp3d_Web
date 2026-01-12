@@ -22,7 +22,7 @@ const routesMap = {
 };
 
 const ctaTextMap = {
-  estudiantes: 'Ver servicios para Estudiantes',
+  estudiantes: 'Servicios para Estudiantes',
   empresas: 'Soluciones para Empresas',
   emprendedores: 'Impulsa tu Emprendimiento',
 };
@@ -102,7 +102,7 @@ export default function SectionServices() {
         {/* Specific Sector CTA Button */}
         <div className="flex justify-center">
             <Link href={routesMap[activeTab]}>
-                <button className="flex items-center gap-2 bg-azul-oscuro text-white border-2 border-white font-bold py-3 px-8 rounded-full hover:bg-white hover:text-azul-oscuro transition shadow-lg text-lg">
+                <button className="flex items-center gap-2 bg-white text-azul-oscuro border-2 border-azul-oscuro font-bold py-3 px-8 rounded-full hover:bg-azul-oscuro hover:text-white transition shadow-lg text-lg">
                     {ctaTextMap[activeTab]}
                     <ArrowRight size={20} />
                 </button>

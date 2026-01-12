@@ -15,45 +15,54 @@ export default function EstudiantesPage() {
     <ScrollLayout>
       <main className="font-garet text-white bg-azul-oscuro">
         {/* Full Screen Hero with Cards */}
-        <section className="h-[calc(100vh-80px)] flex flex-col justify-center px-6 relative z-10 overflow-hidden">
-             <div className="max-w-6xl mx-auto w-full">
-                <header className="text-center mb-8 relative z-10">
-                    <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-2">
+        <section className="h-[calc(100vh-80px)] flex flex-col px-4 md:px-6 relative z-10 overflow-hidden">
+             <div className="max-w-6xl mx-auto w-full h-full flex flex-col justify-between py-6 md:py-0 md:justify-center gap-0 md:gap-8">
+                <header className="text-center relative z-10 pt-2 md:pt-0 shrink-0 flex-1 flex flex-col justify-center">
+                    <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-white mb-2 md:mb-2 leading-none">
                         Impresión 3D para <span className="text-naranja">Estudiantes</span>
                     </h1>
-                    <span className="text-naranja font-bold tracking-widest uppercase text-sm mb-4 block">Ideal para Tesis y Proyectos</span>
-                    <p className="text-xl text-gray-300 max-w-3xl mx-auto font-light leading-snug">
+                    <span className="text-naranja font-bold tracking-widest uppercase text-xs sm:text-sm mb-2 md:mb-4 block">Ideal para Tesis y Proyectos</span>
+                    <p className="text-sm sm:text-xl text-gray-300 max-w-3xl mx-auto font-light leading-snug hidden sm:block">
                         Sabemos que el tiempo y el presupuesto son clave en la universidad. Te ayudamos a entregar tu proyecto a tiempo con acabados profesionales.
+                    </p>
+                    <p className="text-xs text-gray-300 max-w-3xl mx-auto font-light leading-snug sm:hidden px-4">
+                        Te ayudamos a entregar tu proyecto a tiempo con acabados profesionales.
                     </p>
                 </header>
 
-                <div className="grid md:grid-cols-3 gap-6 relative z-10">
-                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group">
-                        <div className="bg-naranja/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <BookOpen className="text-naranja w-7 h-7" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 relative z-10 w-full mb-4 md:mb-0">
+                    <div className="bg-white/5 border border-white/10 p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex md:block items-center md:items-start gap-4 md:gap-0">
+                        <div className="bg-naranja/10 w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center mb-0 md:mb-4 group-hover:scale-110 transition-transform shrink-0">
+                            <BookOpen className="text-naranja w-5 h-5 md:w-7 md:h-7" />
                         </div>
-                        <h3 className="text-xl font-bold mb-2 text-white">Maquetas de Arquitectura</h3>
-                        <p className="text-gray-400 leading-relaxed text-sm">
-                            Imprimimos topografías complejas, fachadas detalladas y mobiliario a escala. Ahorra horas de corte manual.
-                        </p>
+                        <div>
+                            <h3 className="text-sm md:text-xl font-bold mb-1 md:mb-2 text-white">Maquetas de Arquitectura</h3>
+                            <p className="text-gray-400 leading-tight text-xs md:text-sm">
+                                Imprimimos topografías complejas, fachadas detalladas y mobiliario a escala.
+                            </p>
+                        </div>
                     </div>
-                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group">
-                        <div className="bg-naranja/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <Lightbulb className="text-naranja w-7 h-7" />
+                    <div className="bg-white/5 border border-white/10 p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex md:block items-center md:items-start gap-4 md:gap-0">
+                        <div className="bg-naranja/10 w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center mb-0 md:mb-4 group-hover:scale-110 transition-transform shrink-0">
+                            <Lightbulb className="text-naranja w-5 h-5 md:w-7 md:h-7" />
                         </div>
-                        <h3 className="text-xl font-bold mb-2 text-white">Prototipos de Ingeniería</h3>
-                        <p className="text-gray-400 leading-relaxed text-sm">
-                            Engranajes, carcasas para Arduino/Raspberry Pi, mecanismos funcionales. Materiales resistentes como PETG o ABS.
-                        </p>
+                        <div>
+                            <h3 className="text-sm md:text-xl font-bold mb-1 md:mb-2 text-white">Prototipos de Ingeniería</h3>
+                            <p className="text-gray-400 leading-tight text-xs md:text-sm">
+                                Engranajes, carcasas y mecanismos. Materiales resistentes como PETG o ABS.
+                            </p>
+                        </div>
                     </div>
-                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group">
-                        <div className="bg-naranja/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <Users className="text-naranja w-7 h-7" />
+                    <div className="bg-white/5 border border-white/10 p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex md:block items-center md:items-start gap-4 md:gap-0">
+                        <div className="bg-naranja/10 w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center mb-0 md:mb-4 group-hover:scale-110 transition-transform shrink-0">
+                            <Users className="text-naranja w-5 h-5 md:w-7 md:h-7" />
                         </div>
-                        <h3 className="text-xl font-bold mb-2 text-white">Descuentos Grupales</h3>
-                        <p className="text-gray-400 leading-relaxed text-sm">
-                            ¿Toda la clase necesita imprimir? Contáctanos para precios especiales por volumen de piezas.
-                        </p>
+                        <div>
+                            <h3 className="text-sm md:text-xl font-bold mb-1 md:mb-2 text-white">Descuentos Grupales</h3>
+                            <p className="text-gray-400 leading-tight text-xs md:text-sm">
+                                ¿Toda la clase necesita imprimir? Precios especiales por volumen.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
