@@ -13,59 +13,73 @@ export const metadata: Metadata = {
 export default function EstudiantesPage() {
   return (
     <ScrollLayout>
-      <main className="font-garet text-negro pt-24 pb-16 px-6">
-        <div className="max-w-6xl mx-auto">
-          <header className="text-center mb-16">
-              <span className="text-naranja font-bold tracking-widest uppercase text-sm mb-2 block">Ideal para Tesis y Proyectos</span>
-              <h1 className="text-4xl md:text-6xl font-extrabold text-azul-oscuro mb-6">
-                  Impresión 3D para Estudiantes
-              </h1>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                  Sabemos que el tiempo y el presupuesto son clave en la universidad. Te ayudamos a entregar tu proyecto a tiempo con acabados profesionales.
-              </p>
-          </header>
+      <main className="font-garet text-white bg-azul-oscuro">
+        {/* Full Screen Hero with Cards */}
+        <section className="h-[calc(100vh-80px)] flex flex-col justify-center px-6 relative z-10 overflow-hidden">
+             <div className="max-w-6xl mx-auto w-full">
+                <header className="text-center mb-8 relative z-10">
+                    <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-2">
+                        Impresión 3D para <span className="text-naranja">Estudiantes</span>
+                    </h1>
+                    <span className="text-naranja font-bold tracking-widest uppercase text-sm mb-4 block">Ideal para Tesis y Proyectos</span>
+                    <p className="text-xl text-gray-300 max-w-3xl mx-auto font-light leading-snug">
+                        Sabemos que el tiempo y el presupuesto son clave en la universidad. Te ayudamos a entregar tu proyecto a tiempo con acabados profesionales.
+                    </p>
+                </header>
 
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
-              <div className="bg-white border border-gray-100 p-8 rounded-2xl shadow-sm hover:shadow-md transition">
-                  <BookOpen className="text-azul-oscuro w-10 h-10 mb-4" />
-                  <h3 className="text-xl font-bold mb-3">Maquetas de Arquitectura</h3>
-                  <p className="text-gray-600">
-                      Imprimimos topografías complejas, fachadas detalladas y mobiliario a escala. Ahorra horas de corte manual.
-                  </p>
-              </div>
-              <div className="bg-white border border-gray-100 p-8 rounded-2xl shadow-sm hover:shadow-md transition">
-                  <Lightbulb className="text-naranja w-10 h-10 mb-4" />
-                  <h3 className="text-xl font-bold mb-3">Prototipos de Ingeniería</h3>
-                  <p className="text-gray-600">
-                      Engranajes, carcasas para Arduino/Raspberry Pi, mecanismos funcionales. Materiales resistentes como PETG o ABS.
-                  </p>
-              </div>
-              <div className="bg-white border border-gray-100 p-8 rounded-2xl shadow-sm hover:shadow-md transition">
-                  <Users className="text-blue-500 w-10 h-10 mb-4" />
-                  <h3 className="text-xl font-bold mb-3">Descuentos Grupales</h3>
-                  <p className="text-gray-600">
-                      ¿Toda la clase necesita imprimir? Contáctanos para precios especiales por volumen de piezas.
-                  </p>
-              </div>
-          </div>
+                <div className="grid md:grid-cols-3 gap-6 relative z-10">
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group">
+                        <div className="bg-naranja/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <BookOpen className="text-naranja w-7 h-7" />
+                        </div>
+                        <h3 className="text-xl font-bold mb-2 text-white">Maquetas de Arquitectura</h3>
+                        <p className="text-gray-400 leading-relaxed text-sm">
+                            Imprimimos topografías complejas, fachadas detalladas y mobiliario a escala. Ahorra horas de corte manual.
+                        </p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group">
+                        <div className="bg-naranja/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <Lightbulb className="text-naranja w-7 h-7" />
+                        </div>
+                        <h3 className="text-xl font-bold mb-2 text-white">Prototipos de Ingeniería</h3>
+                        <p className="text-gray-400 leading-relaxed text-sm">
+                            Engranajes, carcasas para Arduino/Raspberry Pi, mecanismos funcionales. Materiales resistentes como PETG o ABS.
+                        </p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group">
+                        <div className="bg-naranja/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <Users className="text-naranja w-7 h-7" />
+                        </div>
+                        <h3 className="text-xl font-bold mb-2 text-white">Descuentos Grupales</h3>
+                        <p className="text-gray-400 leading-relaxed text-sm">
+                            ¿Toda la clase necesita imprimir? Contáctanos para precios especiales por volumen de piezas.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-          <section className="bg-blue-50 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
-              <div>
-                  <h2 className="text-3xl font-bold text-azul-oscuro mb-4">¿Tienes una entrega urgente?</h2>
-                  <p className="text-lg text-gray-700 mb-2">
-                      Entendemos las "noches de entrega". Envíanos tu archivo hoy mismo para evaluar tiempos.
-                  </p>
-                  <p className="text-sm text-gray-500">
-                      *Sujeto a disponibilidad de máquinas.
-                  </p>
-              </div>
-              <Link href="/contacto">
-                  <button className="bg-naranja text-azul-oscuro font-bold py-3 px-8 rounded-full hover:bg-opacity-90 transition shadow-lg">
-                      Enviar archivo ahora
-                  </button>
-              </Link>
-          </section>
-        </div>
+        {/* Call to Action Section (Below Fold) */}
+        <section className="py-20 px-6">
+            <div className="max-w-6xl mx-auto">
+                <div className="bg-gradient-to-r from-naranja/10 to-naranja/5 border border-naranja/20 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden z-10 transition-all hover:border-naranja/40">
+                    <div className="relative z-10">
+                        <h2 className="text-3xl font-bold text-white mb-4">¿Tienes una entrega urgente?</h2>
+                        <p className="text-lg text-gray-300 mb-2 max-w-xl">
+                            Entendemos las "noches de entrega". Envíanos tu archivo hoy mismo para evaluar tiempos.
+                        </p>
+                        <p className="text-sm text-naranja/80 font-semibold">
+                            *Sujeto a disponibilidad de máquinas.
+                        </p>
+                    </div>
+                    <Link href="/contacto" className="relative z-10">
+                        <button className="bg-naranja text-azul-oscuro font-bold py-4 px-8 rounded-full hover:bg-white hover:text-naranja transition shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                            Enviar archivo ahora
+                        </button>
+                    </Link>
+                </div>
+            </div>
+        </section>
       </main>
       <Footer />
     </ScrollLayout>

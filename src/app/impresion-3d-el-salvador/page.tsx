@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { CheckCircle, MapPin } from 'lucide-react';
 import ScrollLayout from '@/components/layout/ScrollLayout';
 import Footer from '@/components/layout/Footer';
@@ -15,9 +16,9 @@ export default function Impresion3DElSalvador() {
     <ScrollLayout>
       <main className="font-garet text-negro">
         {/* Hero Section Específico */}
-        <section className="bg-azul-oscuro text-white pt-32 pb-20 px-6">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
-            <div className="flex-1 space-y-6">
+        <section className="bg-azul-oscuro text-white h-[calc(100vh-80px)] px-6 overflow-hidden">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-12 h-full">
+            <div className="flex-1 space-y-8 flex flex-col justify-center">
               <h1 className="text-4xl md:text-6xl font-extrabold leading-tight">
                 Impresión 3D en <span className="text-naranja">El Salvador</span>
               </h1>
@@ -26,21 +27,25 @@ export default function Impresion3DElSalvador() {
               </p>
               <div className="flex flex-wrap gap-4 pt-4">
                 <Link href="/contacto">
-                  <button className="bg-naranja text-azul-oscuro font-bold py-4 px-8 rounded-full hover:bg-white hover:text-azul-oscuro transition text-lg">
+                  <button className="bg-naranja text-azul-oscuro font-bold py-4 px-8 rounded-full hover:bg-white hover:text-naranja transition text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1">
                     Cotizar mi pieza
                   </button>
                 </Link>
                 <Link href="/servicios">
-                  <button className="border-2 border-white text-white font-bold py-4 px-8 rounded-full hover:bg-white hover:text-azul-oscuro transition text-lg">
+                  <button className="border-2 border-white text-white font-bold py-4 px-8 rounded-full hover:bg-white hover:text-azul-oscuro transition text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1">
                     Ver servicios
                   </button>
                 </Link>
               </div>
             </div>
-            <div className="flex-1">
-               {/* Placeholder for a high-impact image of a printed part in context of El Salvador if possible, or generic high quality print */}
-               <div className="relative w-full aspect-square bg-white/10 rounded-3xl overflow-hidden backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                  <span className="text-white/50 text-xl font-bold">Imagen Destacada Impresión 3D</span>
+            <div className="flex-1 w-full flex items-center justify-center h-full max-h-[600px]">
+               <div className="relative w-full aspect-square max-w-[500px] rounded-3xl overflow-hidden shadow-2xl border border-white/10">
+                  <Image
+                    src="/images/printing.jpg"
+                    alt="Prototipo P2S Impresión 3D"
+                    fill
+                    className="object-cover"
+                  />
                </div>
             </div>
           </div>

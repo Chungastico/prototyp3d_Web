@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="max-w-6xl mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {/* Instagram */}
             <div className="flex items-start gap-3">
-            <Instagram size={18} className="mt-1 text-pink-400" />
+            <Instagram size={18} className="mt-1 text-naranja" />
             <div>
                 <p className="text-gray-400">Instagram</p>
                 <p className="font-medium">@prototyp3d.sv</p>
@@ -18,7 +18,7 @@ export default function Footer() {
 
             {/* Correo */}
             <div className="flex items-start gap-3">
-            <Mail size={18} className="mt-1 text-blue-400" />
+            <Mail size={18} className="mt-1 text-naranja" />
             <div>
                 <p className="text-gray-400">Email</p>
                 <p className="font-medium">prototyp3d.sv@gmail.com</p>
@@ -27,7 +27,7 @@ export default function Footer() {
 
             {/* WhatsApp */}
             <div className="flex items-start gap-3">
-            <Phone size={18} className="mt-1 text-green-400" />
+            <Phone size={18} className="mt-1 text-naranja" />
             <div>
                 <p className="text-gray-400">WhatsApp</p>
                 <p className="font-medium">+503 7093-3901</p>
@@ -36,15 +36,15 @@ export default function Footer() {
 
             {/* Sitio web */}
             <div className="flex items-start gap-3">
-            <Globe size={18} className="mt-1 text-yellow-400" />
+            <Globe size={18} className="mt-1 text-naranja" />
             <div>
                 <p className="text-gray-400">Sitio web</p>
                 <Link
-                href="https://prototyp3d.web.app/"
+                href="https://prototyp3dsv.com/"
                 target="_blank"
                 className="font-medium hover:underline underline-offset-2"
                 >
-                prototyp3d.web.app
+                prototyp3dsv.com
                 </Link>
             </div>
             </div>

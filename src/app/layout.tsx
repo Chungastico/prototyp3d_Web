@@ -23,6 +23,9 @@ export const metadata: Metadata = {
         index: true,
         follow: true,
     },
+    icons: {
+        icon: '/images/logo/Logo_Naranja.png',
+    },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
