@@ -6,7 +6,7 @@ export default function StructuredData() {
     image: 'https://www.prototyp3dsv.com/images/HeroBambu.png', // Fallback/Main image
     '@id': 'https://www.prototyp3dsv.com',
     url: 'https://www.prototyp3dsv.com',
-    telephone: '+503 7093-3901',
+    telephone: '+503 7625-3509',
     email: 'prototyp3d.sv@gmail.com',
     address: {
       '@type': 'PostalAddress',

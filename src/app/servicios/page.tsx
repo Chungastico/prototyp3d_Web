@@ -6,7 +6,7 @@ import { Printer, Box, ArrowRight } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Servicios de Impresión 3D y Diseño | Prototyp3D El Salvador',
-  description: 'Ofrecemos impresión 3D FDM y diseño CAD en Santa Tecla y San Salvador. Calidad profesional para estudiantes y empresas.',
+  description: 'Ofrecemos impresión 3D FDM y diseño CAD en El Salvador Calidad profesional para estudiantes y empresas.',
 };
 
 export default function ServicesPage() {

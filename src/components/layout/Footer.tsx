@@ -30,7 +30,7 @@ export default function Footer() {
             <Phone size={18} className="mt-1 text-naranja" />
             <div>
                 <p className="text-gray-400">WhatsApp</p>
-                <p className="font-medium">+503 7093-3901</p>
+                <p className="font-medium">+503 7625-3509</p>
             </div>
             </div>
 
