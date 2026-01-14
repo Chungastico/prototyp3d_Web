@@ -10,20 +10,5 @@ const nextConfig = {
       },
     ],
   },
-  async redirects() {
-    return [
-      {
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: 'prototyp3dsv.com',
-          },
-        ],
-        destination: 'https://www.prototyp3dsv.com/:path*',
-        permanent: true,
-      },
-    ];
-  },
 };
 module.exports = nextConfig;
