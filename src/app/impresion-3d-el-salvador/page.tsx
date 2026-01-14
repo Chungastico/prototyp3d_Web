@@ -6,10 +6,25 @@ import ScrollLayout from '@/components/layout/ScrollLayout';
 import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
-  title: 'Impresión 3D en El Salvador - Prototyp3D | Servicio Profesional',
-  description: 'Prototyp3D es tu estudio de impresión 3D en El Salvador. Ofrecemos manufactura aditiva FDM, diseño 3D y prototipado rápido en El Salvador.',
-  keywords: ['impresión 3D El Salvador', 'impresoras 3D El Salvador', 'servicio impresión 3D', 'maquetas 3D El Salvador', 'prototipado rápido'],
+    metadataBase: new URL("https://www.prototyp3dsv.com"),
+    alternates: {
+        canonical: "/impresion-3d-el-salvador"
+    },
+    robots: {
+        index: true,
+        follow: true
+    },
+    title: "Impresión 3D en El Salvador - Prototyp3D | Servicio Profesional",
+    description: "Prototyp3D es tu estudio de impresión 3D en El Salvador. Ofrecemos manufactura aditiva FDM, diseño 3D y prototipado rápido en El Salvador.",
+    keywords: [
+        "impresión 3D El Salvador",
+        "impresoras 3D El Salvador",
+        "servicio impresión 3D",
+        "maquetas 3D El Salvador",
+        "prototipado rápido"
+    ]
 };
+
 
 export default function Impresion3DElSalvador() {
   return (

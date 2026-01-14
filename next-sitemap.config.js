@@ -2,7 +2,16 @@
 module.exports = {
   siteUrl: 'https://www.prototyp3dsv.com',
   generateRobotsTxt: true,
-  exclude: ['/admin', '/admin/*'],
+  exclude: [
+    '/admin',
+    '/admin/*',
+    '/auth',
+    '/auth/*',
+    '/dashboard',
+    '/dashboard/*',
+    '/perfil',
+    '/perfil/*',
+  ],
   robotsTxtOptions: {
     policies: [
       {
@@ -11,7 +20,16 @@ module.exports = {
       },
       {
         userAgent: '*',
-        disallow: ['/admin', '/admin/*'],
+        disallow: [
+          '/admin',
+          '/admin/*',
+          '/auth',
+          '/auth/*',
+          '/dashboard',
+          '/dashboard/*',
+          '/perfil',
+          '/perfil/*',
+        ],
       },
     ],
   },

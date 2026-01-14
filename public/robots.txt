@@ -1,14 +1,4 @@
-# *
-User-agent: *
-Allow: /
-
-# *
 User-agent: *
 Disallow: /admin
-Disallow: /admin/*
 
-# Host
-Host: https://www.prototyp3dsv.com
-
-# Sitemaps
 Sitemap: https://www.prototyp3dsv.com/sitemap.xml

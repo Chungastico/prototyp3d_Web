@@ -14,32 +14,11 @@ export default function Hero() {
     const imageRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const tl = gsap.timeline({ defaults: { ease: 'power3.out', duration: 0.8 } });
-
-        // Animación inicial
-        tl.fromTo(
-            titleRef.current,
-            { opacity: 0, scale: 0.95, y: 40 },
-            { opacity: 1, scale: 1, y: 0 }
-        )
-        .fromTo(
-            subtitleRef.current,
-            { opacity: 0, x: -30 },
-            { opacity: 1, x: 0 },
-            '-=0.6'
-        )
-        .fromTo(
-            buttonRef.current,
-            { opacity: 0, y: 30, scale: 0.95 },
-            { opacity: 1, y: 0, scale: 1 },
-            '-=0.6'
-        )
-        .fromTo(
-            imageRef.current,
-            { opacity: 0, y: 40 },
-            { opacity: 1, y: 0, duration: 0.8 },
-            '-=0.6'
-        );
+        /**
+         * SEO-first: Eliminada animación de entrada (tl.fromTo) para mejorar LCP.
+         * Los elementos inician en su posición final (CSS static).
+         * Solo mantenemos las animaciones de scroll (ScrollTrigger) abajo.
+         */
 
         // Efecto parallax + zoom suave al hacer scroll
         if (imageRef.current) {
@@ -126,6 +105,8 @@ export default function Hero() {
                         alt="Impresora 3D Bambu Lab imprimiendo piezas de alta calidad en Prototyp3D El Salvador"
                         width={420}
                         height={420}
+                        priority
+                        sizes="(max-width: 640px) 240px, (max-width: 768px) 300px, 420px"
                         className="w-full h-auto rounded-xl shadow-lg object-contain"
                     />
                 </div>
