@@ -30,51 +30,51 @@ export default function EntrepreneursPage() {
             </div>
 
             <div className="max-w-6xl mx-auto w-full relative z-10">
-                <header className="text-center mb-8">
-                    <span className="text-naranja font-bold tracking-widest uppercase text-sm mb-2 block">Para Innovadores</span>
-                    <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-4 leading-tight">
+                <header className="text-center mb-4 md:mb-8">
+                    <span className="text-naranja font-bold tracking-widest uppercase text-xs md:text-sm mb-1 md:mb-2 block">Para Innovadores</span>
+                    <h1 className="text-3xl md:text-6xl font-extrabold text-white mb-2 md:mb-4 leading-tight">
                         De la Idea a la <span className="text-naranja">Realidad</span>
                     </h1>
-                    <p className="text-xl text-gray-300 max-w-2xl mx-auto font-light leading-snug">
+                    <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto font-light leading-snug">
                         No gastes en moldes sin ventas. Crea tu <strong>MVP</strong> y valida tu mercado rápido y barato.
                     </p>
                 </header>
 
-                 <div className="grid md:grid-cols-3 gap-6">
-                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex flex-col items-center text-center">
-                        <div className="bg-naranja/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <Rocket className="text-naranja w-7 h-7" />
+                 <div className="grid md:grid-cols-3 gap-3 md:gap-6">
+                    <div className="bg-white/5 border border-white/10 p-4 md:p-6 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex flex-col items-center text-center">
+                        <div className="bg-naranja/10 w-10 h-10 md:w-14 md:h-14 rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform">
+                            <Rocket className="text-naranja w-5 h-5 md:w-7 md:h-7" />
                         </div>
-                        <h3 className="text-xl font-bold mb-2 text-white">Validación Rápida</h3>
-                        <p className="text-gray-400 leading-relaxed text-sm">
+                        <h3 className="text-base md:text-xl font-bold mb-1 md:mb-2 text-white">Validación Rápida</h3>
+                        <p className="text-gray-400 leading-relaxed text-xs md:text-sm">
                             Lanza en días, no meses. Recibe feedback real antes de invertir en masa.
                         </p>
                     </div>
                     
-                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex flex-col items-center text-center">
-                         <div className="bg-naranja/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                             <RefreshCw className="text-naranja w-7 h-7" />
+                    <div className="bg-white/5 border border-white/10 p-4 md:p-6 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex flex-col items-center text-center">
+                         <div className="bg-naranja/10 w-10 h-10 md:w-14 md:h-14 rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform">
+                             <RefreshCw className="text-naranja w-5 h-5 md:w-7 md:h-7" />
                         </div>
-                        <h3 className="text-xl font-bold mb-2 text-white">Iteración Ágil</h3>
-                        <p className="text-gray-400 leading-relaxed text-sm">
+                        <h3 className="text-base md:text-xl font-bold mb-1 md:mb-2 text-white">Iteración Ágil</h3>
+                        <p className="text-gray-400 leading-relaxed text-xs md:text-sm">
                             ¿Falló el diseño? Corrígelo e imprime de nuevo en horas. Error barato.
                         </p>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex flex-col items-center text-center">
-                         <div className="bg-naranja/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <Box className="text-naranja w-7 h-7" />
+                    <div className="bg-white/5 border border-white/10 p-4 md:p-6 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex flex-col items-center text-center">
+                         <div className="bg-naranja/10 w-10 h-10 md:w-14 md:h-14 rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform">
+                            <Box className="text-naranja w-5 h-5 md:w-7 md:h-7" />
                         </div>
-                        <h3 className="text-xl font-bold mb-2 text-white">Lotes Pequeños</h3>
-                        <p className="text-gray-400 leading-relaxed text-sm">
+                        <h3 className="text-base md:text-xl font-bold mb-1 md:mb-2 text-white">Lotes Pequeños</h3>
+                        <p className="text-gray-400 leading-relaxed text-xs md:text-sm">
                             Fabrica 10 o 50 unidades. Sin mínimos absurdos de fábrica.
                         </p>
                     </div>
                 </div>
 
-                <div className="text-center mt-8">
+                <div className="text-center mt-4 md:mt-8">
                      <Link href="/contacto">
-                        <Button className="bg-naranja text-azul-oscuro hover:bg-white hover:text-azul-oscuro font-extrabold text-base px-8 py-6 rounded-full transition-all duration-300 shadow-lg hover:shadow-naranja/20">
+                        <Button className="bg-naranja text-azul-oscuro hover:bg-white hover:text-azul-oscuro font-extrabold text-base px-6 py-3 md:px-8 md:py-6 rounded-full transition-all duration-300 shadow-lg hover:shadow-naranja/20">
                             Cotizar mi Prototipo
                         </Button>
                     </Link>

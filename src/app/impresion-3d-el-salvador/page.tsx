@@ -32,29 +32,29 @@ export default function Impresion3DElSalvador() {
       <main className="font-garet text-negro">
         {/* Hero Section Específico */}
         <section className="bg-azul-oscuro text-white h-[calc(100vh-80px)] px-6 overflow-hidden">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-12 h-full">
-            <div className="flex-1 space-y-8 flex flex-col justify-center">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center md:justify-center gap-4 md:gap-12 h-full py-4 md:py-0">
+            <div className="shrink-0 md:flex-1 space-y-4 md:space-y-8 flex flex-col justify-center items-center md:items-start text-center md:text-left z-10 w-full pt-4 md:pt-0">
               <h1 className="text-4xl md:text-6xl font-extrabold leading-tight">
                 Impresión 3D en <span className="text-naranja">El Salvador</span>
               </h1>
-              <p className="text-xl md:text-2xl text-gray-300 max-w-2xl">
+              <p className="text-lg md:text-2xl text-gray-300 max-w-2xl px-2 md:px-0 leading-relaxed">
                 Tu aliado local para fabricar lo imposible. Servicio para todo el país, convertimos archivos digitales en objetos físicos de alta calidad.
               </p>
-              <div className="flex flex-wrap gap-4 pt-4">
+              <div className="flex flex-wrap justify-center md:justify-start gap-3 md:gap-4 pt-2 md:pt-4 w-full">
                 <Link href="/contacto">
-                  <button className="bg-naranja text-azul-oscuro font-bold py-4 px-8 rounded-full hover:bg-white hover:text-naranja transition text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                  <button className="bg-naranja text-azul-oscuro font-bold py-3 px-8 md:py-4 md:px-8 rounded-full hover:bg-white hover:text-naranja transition text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1">
                     Cotizar mi pieza
                   </button>
                 </Link>
                 <Link href="/servicios">
-                  <button className="border-2 border-white text-white font-bold py-4 px-8 rounded-full hover:bg-white hover:text-azul-oscuro transition text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                  <button className="border-2 border-white text-white font-bold py-3 px-8 md:py-4 md:px-8 rounded-full hover:bg-white hover:text-azul-oscuro transition text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1">
                     Ver servicios
                   </button>
                 </Link>
               </div>
             </div>
-            <div className="flex-1 w-full flex items-center justify-center h-full max-h-[600px]">
-               <div className="relative w-full aspect-square max-w-[500px] rounded-3xl overflow-hidden shadow-2xl border border-white/10">
+            <div className="flex-1 md:flex-1 w-full flex items-center justify-center md:h-full md:max-h-[600px] mt-4 md:mt-0 min-h-0">
+               <div className="relative w-full h-full md:h-auto md:w-full md:aspect-square md:max-w-[500px] rounded-3xl overflow-hidden shadow-2xl border border-white/10">
                   <Image
                     src="/images/printing.jpg"
                     alt="Prototipo P2S Impresión 3D"

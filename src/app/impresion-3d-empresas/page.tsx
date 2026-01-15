@@ -29,46 +29,46 @@ export default function EmpresasPage() {
             </div>
 
             <div className="max-w-6xl mx-auto w-full relative z-10">
-                <header className="text-center mb-12">
-                     <span className="text-naranja font-bold tracking-widest uppercase text-sm mb-4 block">Soluciones B2B</span>
-                    <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
+                <header className="text-center mb-4 md:mb-12">
+                     <span className="text-naranja font-bold tracking-widest uppercase text-xs md:text-sm mb-1 md:mb-4 block">Soluciones B2B</span>
+                    <h1 className="text-3xl md:text-6xl font-extrabold text-white mb-2 md:mb-6 leading-tight">
                         Manufactura Aditiva para <span className="text-naranja">Empresas</span>
                     </h1>
-                     <p className="text-xl text-gray-300 max-w-3xl mx-auto font-light leading-snug">
+                     <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto font-light leading-snug">
                         Acelere su ciclo de innovación. Reduzca costos de desarrollo y lance productos al mercado más rápido con nuestro servicio de prototipado profesional.
                     </p>
                 </header>
 
-                 <div className="grid md:grid-cols-3 gap-6">
+                 <div className="grid md:grid-cols-3 gap-3 md:gap-6">
                     {/* Card 1 */}
-                    <div className="bg-white/5 border border-white/10 p-8 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex flex-col items-center text-center">
-                        <div className="bg-naranja/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                            <TrendingUp className="text-naranja w-8 h-8" />
+                    <div className="bg-white/5 border border-white/10 p-4 md:p-8 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex flex-col items-center text-center">
+                        <div className="bg-naranja/10 w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mb-2 md:mb-6 group-hover:scale-110 transition-transform">
+                            <TrendingUp className="text-naranja w-6 h-6 md:w-8 md:h-8" />
                         </div>
-                        <h3 className="text-xl font-bold mb-3 text-white">Validación de Diseño</h3>
-                        <p className="text-gray-400 leading-relaxed text-sm">
+                        <h3 className="text-base md:text-xl font-bold mb-1 md:mb-3 text-white">Validación de Diseño</h3>
+                        <p className="text-gray-400 leading-relaxed text-xs md:text-sm">
                              Pase del CAD a una pieza física funcional en horas. Detecte errores antes de invertir en moldes.
                         </p>
                     </div>
                     
                     {/* Card 2 */}
-                    <div className="bg-white/5 border border-white/10 p-8 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex flex-col items-center text-center">
-                         <div className="bg-naranja/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                             <Factory className="text-naranja w-8 h-8" />
+                    <div className="bg-white/5 border border-white/10 p-4 md:p-8 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex flex-col items-center text-center">
+                         <div className="bg-naranja/10 w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mb-2 md:mb-6 group-hover:scale-110 transition-transform">
+                             <Factory className="text-naranja w-6 h-6 md:w-8 md:h-8" />
                         </div>
-                        <h3 className="text-xl font-bold mb-3 text-white">Lotes Cortos</h3>
-                        <p className="text-gray-400 leading-relaxed text-sm">
+                        <h3 className="text-base md:text-xl font-bold mb-1 md:mb-3 text-white">Lotes Cortos</h3>
+                        <p className="text-gray-400 leading-relaxed text-xs md:text-sm">
                             Fabricamos series de 10 a 500 unidades para test de mercado, sin mínimos de producción masiva.
                         </p>
                     </div>
 
                     {/* Card 3 */}
-                    <div className="bg-white/5 border border-white/10 p-8 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex flex-col items-center text-center">
-                         <div className="bg-naranja/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                            <ShieldCheck className="text-naranja w-8 h-8" />
+                    <div className="bg-white/5 border border-white/10 p-4 md:p-8 rounded-3xl shadow-lg hover:bg-white/10 transition duration-300 group flex flex-col items-center text-center">
+                         <div className="bg-naranja/10 w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mb-2 md:mb-6 group-hover:scale-110 transition-transform">
+                            <ShieldCheck className="text-naranja w-6 h-6 md:w-8 md:h-8" />
                         </div>
-                        <h3 className="text-xl font-bold mb-3 text-white">Confidencialidad</h3>
-                        <p className="text-gray-400 leading-relaxed text-sm">
+                        <h3 className="text-base md:text-xl font-bold mb-1 md:mb-3 text-white">Confidencialidad</h3>
+                        <p className="text-gray-400 leading-relaxed text-xs md:text-sm">
                             Propiedad intelectual protegida bajo estricta confidencialidad. Emitimos Facturas de Crédito Fiscal.
                         </p>
                     </div>
