@@ -117,15 +117,21 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
         fetchData();
     }, [fetchData]);
 
-    const updateStatus = async (newStatus: any) => {
+    const updateStatus = async (newStatus: any, montoCobrado?: number) => {
         if (!job) return;
+        
+        const updates: any = { estado: newStatus };
+        if (montoCobrado !== undefined) {
+            updates.monto_cobrado = montoCobrado;
+        }
+
         const { error } = await supabase
             .from('gestion_trabajos')
-            .update({ estado: newStatus })
+            .update(updates)
             .eq('id', jobId);
         
         if (!error) {
-            setJob({ ...job, estado: newStatus });
+            setJob({ ...job, ...updates });
         }
     };
 
@@ -216,20 +222,79 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                     </div>
                 </div>
                 
-                <div className="flex gap-2">
-                    {['aprobado', 'entregado'].map((s) => (
-                        <button
-                            key={s}
-                            onClick={() => updateStatus(s)}
-                            className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all ${
-                                job.estado === s 
-                                ? 'bg-gray-900 text-white border-gray-900' 
-                                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
-                            }`}
-                        >
-                            {s.charAt(0).toUpperCase() + s.slice(1)}
-                        </button>
-                    ))}
+                <div className="flex gap-2 items-center">
+                    {/* Status Buttons */}
+                     <div className="flex gap-1">
+                        {['aprobado', 'entregado'].map((s) => (
+                            <button
+                                key={s}
+                                onClick={() => updateStatus(s)}
+                                className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all ${
+                                    job.estado === s 
+                                    ? 'bg-gray-900 text-white border-gray-900' 
+                                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                                }`}
+                            >
+                                {s.charAt(0).toUpperCase() + s.slice(1)}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Cancellation Options */}
+                    {(job.estado !== 'cancelado' && job.estado !== 'parcialmente_cancelado') ? (
+                         <div className="flex gap-1 ml-2 border-l pl-2 border-gray-200">
+                             <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                                onClick={() => {
+                                    const amount = prompt("Monto cobrado por cancelación (si aplica):", "0");
+                                    if (amount !== null) {
+                                        const numAmount = parseFloat(amount);
+                                        if (!isNaN(numAmount)) {
+                                            updateStatus('cancelado', numAmount);
+                                        } else {
+                                            alert("Monto inválido");
+                                        }
+                                    }
+                                }}
+                             >
+                                Cancelar
+                             </Button>
+                             <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 text-xs text-orange-500 hover:text-orange-600 hover:bg-orange-50"
+                                onClick={() => {
+                                     const amount = prompt("Monto cobrado (Parcial):", "0");
+                                    if (amount !== null) {
+                                        const numAmount = parseFloat(amount);
+                                         if (!isNaN(numAmount)) {
+                                            updateStatus('parcialmente_cancelado', numAmount);
+                                        } else {
+                                            alert("Monto inválido");
+                                        }
+                                    }
+                                }}
+                             >
+                                Parc. Cancelado
+                             </Button>
+                         </div>
+                    ) : (
+                         <span className={`ml-2 px-3 py-1 text-xs font-semibold rounded-full border ${
+                            job.estado === 'cancelado' 
+                                ? 'bg-red-100 text-red-700 border-red-200' 
+                                : 'bg-orange-100 text-orange-700 border-orange-200'
+                         }`}>
+                            {job.estado === 'cancelado' ? 'Cancelado' : 'Parc. Cancelado'}
+                             {job.monto_cobrado !== undefined && job.monto_cobrado !== null && (
+                                 <span className="ml-1 font-normal text-xs opacity-75">
+                                     (${job.monto_cobrado.toFixed(2)})
+                                 </span>
+                             )}
+                        </span>
+                    )}
+
                     {/* Read-only indicators for automated statuses */}
                     {['cotizado', 'en_produccion', 'listo'].includes(job.estado) && (
                         <span className={`px-3 py-1 text-xs font-semibold rounded-full border bg-gray-900 text-white border-gray-900`}>

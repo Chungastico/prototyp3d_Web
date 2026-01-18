@@ -25,11 +25,12 @@ export interface GestionTrabajo {
   nombre_proyecto: string;
   cliente_id: string;
   // Status with 'en_produccion' (no accent in DB)
-  estado: 'cotizado' | 'aprobado' | 'en_produccion' | 'listo' | 'entregado';
+  estado: 'cotizado' | 'aprobado' | 'en_produccion' | 'listo' | 'entregado' | 'cancelado' | 'parcialmente_cancelado';
   estado_pago: 'pendiente' | 'pagado';
   metodo_pago: string | null;
   fecha_solicitado: string;
   fecha_entrega: string;
+  monto_cobrado?: number | null; // Amount actually collected if cancelled/partial
   thumbnail_url: string | null;
   fusion_project_url: string | null;
   files: any | null; 

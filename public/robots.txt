@@ -1,4 +1,20 @@
+# *
+User-agent: *
+Allow: /
+
+# *
 User-agent: *
 Disallow: /admin
+Disallow: /admin/*
+Disallow: /auth
+Disallow: /auth/*
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /perfil
+Disallow: /perfil/*
 
+# Host
+Host: https://www.prototyp3dsv.com
+
+# Sitemaps
 Sitemap: https://www.prototyp3dsv.com/sitemap.xml
