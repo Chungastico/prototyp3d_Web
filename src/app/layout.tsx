@@ -5,6 +5,7 @@ import { Metadata } from 'next';
 import StructuredData from '@/components/seo/StructuredData';
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import { GoogleAnalytics } from '@next/third-parties/google';
 import '@react-three/fiber';
 
 const SITE_URL = 'https://www.prototyp3dsv.com';
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     {children}
                     <SpeedInsights />
                     <Analytics />
+                    <GoogleAnalytics gaId="G-F6BWYC8X2F" />
                 </body>
             </html>
         </ClerkProvider>

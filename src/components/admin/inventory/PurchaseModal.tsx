@@ -34,41 +34,54 @@ export function PurchaseModal({ open, onOpenChange, currentInventory, onSaved }:
     const selectedFilament = currentInventory.find(f => f.id === selectedFilamentId);
 
     // Auto-fill cost from previous price if available
+    // Auto-fill cost from previous price if available
     useEffect(() => {
-        if (selectedFilament) {
-            // Estimate cost based on previous price/g or bobina price? 
-            // Better to let user input the *new* cost of this purchase.
-            // But we can default to the stored `precio_bobina` if the quantity matches standard size.
-            // Let's just default to stored price for convenience.
-            setCost(selectedFilament.precio_bobina || 0);
+        if (selectedFilament && quantityToAdd > 0) {
+            // Calculate cost based on existing price per gram
+            const pricePerGram = selectedFilament.precio_por_gramo || 0;
+            const calculatedCost = pricePerGram * quantityToAdd;
+            setCost(calculatedCost);
         }
-    }, [selectedFilament]);
+    }, [selectedFilament, quantityToAdd]);
 
     const handleSave = async () => {
         if (!selectedFilamentId || !quantityToAdd || cost < 0) return;
         setLoading(true);
 
         try {
-            // 1. Update Inventory Stock
-            const newStock = (selectedFilament?.stock_gramos_disponibles || 0) + quantityToAdd;
-            
-            // Optionally update the 'current price' if it changed?
-            // The user might want the system to reflect the LATEST price.
-            // Let's update `precio_bobina` and `precio_por_gramo` to the new values if provided.
-            const newPricePerGram = quantityToAdd > 0 ? (cost / quantityToAdd) : (selectedFilament?.precio_por_gramo || 0);
+            // 1. Insert into Purchase History
+            const purchasePayload = {
+                filamento_id: selectedFilamentId,
+                cantidad_g: quantityToAdd,
+                costo_total: cost,
+                fecha_compra: new Date().toISOString(),
+                proveedor_id: selectedFilament?.proveedor_id
+            };
 
+            const { error: purchaseError } = await supabase
+                .from('compras_filamento')
+                .insert([purchasePayload]);
+
+            if (purchaseError) {
+                console.error("Error creating purchase record:", purchaseError);
+                throw new Error(`Error guardando historial: ${purchaseError.message}`);
+            }
+
+            // 2. Update Inventory Stock & Prices
+            const newStock = (selectedFilament?.stock_gramos_disponibles || 0) + quantityToAdd;            
             const { error: updateError } = await supabase
                 .from('inventario_filamento')
                 .update({ 
                     stock_gramos_disponibles: newStock,
-                    precio_bobina: cost, // Updating to latest purchase price
-                    precio_por_gramo: newPricePerGram 
+                    // precio_bobina: cost, // Removed per user request (cost is constant)
+                    // precio_por_gramo: newPricePerGram // Removed per user request
                 })
                 .eq('id', selectedFilamentId);
 
-            if (updateError) throw updateError;
-
-            // 2. Future: Log purchase in a `movimientos` table if/when created.
+            if (updateError) {
+                 console.error("Error updating inventory:", updateError);
+                 throw new Error(`Error actualizando stock: ${updateError.message}`);
+            }
 
             onSaved();
             onOpenChange(false);
@@ -77,9 +90,9 @@ export function PurchaseModal({ open, onOpenChange, currentInventory, onSaved }:
             setQuantityToAdd(1000);
             setCost(0);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error registering purchase:", error);
-            alert("Error al registrar la compra.");
+            alert(error.message || "Error al registrar la compra.");
         } finally {
             setLoading(false);
         }
@@ -123,12 +136,11 @@ export function PurchaseModal({ open, onOpenChange, currentInventory, onSaved }:
                                     <p className="text-xs text-gray-500">Stock actual: {selectedFilament.stock_gramos_disponibles}g</p>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Costo Total ($)</Label>
-                                    <Input 
-                                        type="number" 
-                                        value={cost} 
-                                        onChange={e => setCost(parseFloat(e.target.value))} 
-                                    />
+                                    <Label>Costo Calculado ($)</Label>
+                                    <div className="h-10 flex items-center px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-600 font-mono">
+                                        ${cost.toFixed(2)}
+                                    </div>
+                                    <p className="text-xs text-gray-500">Basado en precio actual (${selectedFilament.precio_bobina?.toFixed(2)}/rollo)</p>
                                 </div>
                             </div>
                         </>

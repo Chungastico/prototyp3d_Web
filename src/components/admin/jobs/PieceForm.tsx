@@ -191,6 +191,63 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                     .insert([consumoPayload]);
 
                 if (consumoError) console.error("Error creating/updating consumption:", consumoError);
+                
+                // 3. Update Inventory Stock (Deduct Usage)
+                // Calculate net change in consumption
+                let gramsToDeduct = gramosTotales;
+
+                if (pieceToEdit) {
+                    // If editing, we only deduct the DIFFERENCE (New - Old)
+                    // If we used MORE, gramsToDeduct is positive (Stock goes down)
+                    // If we used LESS, gramsToDeduct is negative (Stock goes up)
+                    
+                    // Check if filament changed. If changed, we need to return stock to old filament and take from new.
+                    if (pieceToEdit.filamento_id !== selectedFilamentId) {
+                        // Complex case: Return stock to OLD filament
+                        const oldTotal = pieceToEdit.gramos_usados * pieceToEdit.cantidad;
+                        // We need to fetch the old filament's current stock to update it properly
+                        const { data: oldFilamentData } = await supabase
+                            .from('inventario_filamento')
+                            .select('stock_gramos_disponibles')
+                            .eq('id', pieceToEdit.filamento_id)
+                            .single();
+                        
+                        if (oldFilamentData) {
+                             const restoredStock = (oldFilamentData.stock_gramos_disponibles || 0) + oldTotal;
+                             await supabase
+                                .from('inventario_filamento')
+                                .update({ stock_gramos_disponibles: restoredStock })
+                                .eq('id', pieceToEdit.filamento_id);
+                        }
+                        
+                        // Treat the new filament as a fresh deduction
+                        gramsToDeduct = gramosTotales; 
+
+                    } else {
+                        // Same filament, just adjust amount
+                        const oldTotal = pieceToEdit.gramos_usados * pieceToEdit.cantidad;
+                        gramsToDeduct = gramosTotales - oldTotal;
+                    }
+                }
+
+                // Fetch latest stock for the CURRENT target filament to ensure accuracy
+                const { data: currentFilamentData } = await supabase
+                    .from('inventario_filamento')
+                    .select('stock_gramos_disponibles')
+                    .eq('id', selectedFilamentId)
+                    .single();
+
+                if (currentFilamentData) {
+                    const currentStock = currentFilamentData.stock_gramos_disponibles || 0;
+                    const newStock = currentStock - gramsToDeduct;
+
+                    const { error: stockError } = await supabase
+                        .from('inventario_filamento')
+                        .update({ stock_gramos_disponibles: newStock })
+                        .eq('id', selectedFilamentId);
+                    
+                    if (stockError) console.error("Error updating stock:", stockError);
+                }
             }
 
             onPieceAdded();
@@ -225,8 +282,11 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                                     type="number" 
                                     min="1" 
                                     className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    value={cantidad} 
-                                    onChange={e => setCantidad(parseInt(e.target.value) || 1)} 
+                                    value={cantidad === 0 ? '' : cantidad} 
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        setCantidad(val === '' ? 0 : parseInt(val));
+                                    }} 
                                 />
                             </div>
                             <div className="space-y-2">
@@ -254,7 +314,10 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                                     type="number" 
                                     className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     value={gramosUnit === 0 ? '' : gramosUnit} 
-                                    onChange={e => setGramosUnit(parseFloat(e.target.value) || 0)} 
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        setGramosUnit(val === '' ? 0 : parseFloat(val));
+                                    }} 
                                 />
                             </div>
                             <div className="space-y-2">
@@ -263,7 +326,10 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                                     type="number" 
                                     className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     value={tiempoMod === 0 ? '' : tiempoMod} 
-                                    onChange={e => setTiempoMod(parseFloat(e.target.value) || 0)} 
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        setTiempoMod(val === '' ? 0 : parseFloat(val));
+                                    }} 
                                 />
                             </div>
                         </div>
@@ -278,7 +344,10 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                                         className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none pr-12"
                                         min="0"
                                         value={printingHours === 0 ? '' : printingHours} 
-                                        onChange={e => setPrintingHours(parseInt(e.target.value) || 0)} 
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            setPrintingHours(val === '' ? 0 : parseInt(val));
+                                        }} 
                                     />
                                     <span className="absolute right-3 top-2.5 text-sm text-gray-500 pointer-events-none">Horas</span>
                                 </div>
@@ -290,7 +359,10 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                                         min="0"
                                         max="59"
                                         value={printingMinutes === 0 ? '' : printingMinutes} 
-                                        onChange={e => setPrintingMinutes(parseInt(e.target.value) || 0)} 
+                                        onChange={e => {
+                                             const val = e.target.value;
+                                             setPrintingMinutes(val === '' ? 0 : parseInt(val));
+                                        }} 
                                     />
                                     <span className="absolute right-3 top-2.5 text-sm text-gray-500 pointer-events-none">Minutos</span>
                                 </div>
@@ -345,8 +417,11 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                                 <Input 
                                     type="number" 
                                     className="text-lg font-bold"
-                                    value={precioFinalUnit} 
-                                    onChange={e => setPrecioFinalUnit(parseFloat(e.target.value) || 0)} 
+                                    value={precioFinalUnit === 0 ? '' : precioFinalUnit} 
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        setPrecioFinalUnit(val === '' ? 0 : parseFloat(val));
+                                    }} 
                                 />
                             </div>
                             

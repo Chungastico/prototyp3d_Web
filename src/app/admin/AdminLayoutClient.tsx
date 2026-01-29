@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarItem, SidebarGroup, SidebarGroupLabel } from "@/components/ui/sidebar"
-import { Package, LayoutDashboard, FileText, ShoppingCart, Users, FolderKanban, DollarSign } from "lucide-react"
+import { Package, LayoutDashboard, FileText, ShoppingCart, Users, FolderKanban, DollarSign, Calculator } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
 import Image from "next/image"
 import ProtectedPage from "@/components/ProtectedPage"
@@ -45,6 +45,7 @@ export default function AdminLayoutClient({
                 <SidebarItem href="/admin/jobs" icon={FileText} active={isActive('/admin/jobs')}>Trabajos</SidebarItem>
                 <SidebarItem href="/admin/inventory" icon={Package} active={isActive('/admin/inventory')}>Inventario</SidebarItem>
                  <SidebarItem href="/admin/catalog" icon={ShoppingCart} active={isActive('/admin/catalog')}>Catálogo 3D</SidebarItem>
+                 <SidebarItem href="/admin/calculadora" icon={Calculator} active={isActive('/admin/calculadora')}>Calculadora Express</SidebarItem>
                  <SidebarItem href="/admin/finances" icon={DollarSign} active={isActive('/admin/finances')}>Finanzas</SidebarItem>
             </SidebarGroup>
 

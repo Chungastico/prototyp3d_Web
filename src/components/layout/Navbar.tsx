@@ -180,7 +180,7 @@ export default function Navbar({ visible }: NavbarProps) {
                         </>
                     ) : (
                         <>
-                            <Link href="/auth">
+                            <Link href="/login">
                                 <button className="bg-naranja text-azul-oscuro font-extrabold py-2 px-5 rounded-full hover:bg-opacity-80 transition whitespace-nowrap">
                                     Iniciar sesión
                                 </button>
@@ -299,12 +299,12 @@ export default function Navbar({ visible }: NavbarProps) {
                                                 </>
                                             ) : (
                                                 <div className="flex flex-col gap-3">
-                                                    <Link href="/auth" onClick={() => setMenuOpen(false)} className="w-full">
+                                                    <Link href="/login" onClick={() => setMenuOpen(false)} className="w-full">
                                                         <button className="bg-naranja text-azul-oscuro font-extrabold py-3 px-5 rounded-full hover:bg-opacity-80 transition w-full">
                                                             Iniciar sesión
                                                         </button>
                                                     </Link>
-                                                    <Link href="/auth" onClick={() => setMenuOpen(false)} className="w-full">
+                                                    <Link href="/login" onClick={() => setMenuOpen(false)} className="w-full">
                                                         <button className="border border-naranja text-naranja font-extrabold py-3 px-5 rounded-full hover:bg-naranja hover:text-azul-oscuro transition w-full">
                                                             Registrarse
                                                         </button>

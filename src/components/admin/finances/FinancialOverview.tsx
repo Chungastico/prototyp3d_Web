@@ -2,17 +2,16 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { PiezaTrabajo, ExtraAplicado } from '@/components/admin/jobs/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { DollarSign, TrendingUp, TrendingDown, CreditCard, Activity } from 'lucide-react';
+import { DollarSign, TrendingDown, Activity, Zap, Layers, Box } from 'lucide-react';
 
 interface FinancialMetrics {
     ventas: number;
-    costoVentas: number;
+    gastosMaterial: number;
+    gastosMaquina: number;
+    gastosModelado: number;
+    gastosExtras: number; // Formerly 'gastos'
     gananciaBruta: number;
-    gastos: number;
     gananciaOperativa: number;
     impuestos: number;
     gananciaNeta: number;
@@ -22,9 +21,11 @@ export function FinancialOverview() {
     const [loading, setLoading] = useState(true);
     const [metrics, setMetrics] = useState<FinancialMetrics>({
         ventas: 0,
-        costoVentas: 0,
+        gastosMaterial: 0,
+        gastosMaquina: 0,
+        gastosModelado: 0,
+        gastosExtras: 0,
         gananciaBruta: 0,
-        gastos: 0,
         gananciaOperativa: 0,
         impuestos: 0,
         gananciaNeta: 0
@@ -39,9 +40,6 @@ export function FinancialOverview() {
         setLoading(true);
 
         // 1. Fetch Pieces (Sales & Direct Costs)
-        // We only consider approved or completed jobs for "Realized" financials, 
-        // but often dashboards show everything. Let's filter for finalized/in-progress to be realistic.
-        // Actually, user probably wants to see everything that is 'sold'.
         const { data: piecesData, error: piecesError } = await supabase
             .from('piezas_trabajo')
             .select(`
@@ -67,8 +65,10 @@ export function FinancialOverview() {
         // --- CALCULATIONS ---
 
         let ventas = 0;
-        let costoVentas = 0;
-        let gastos = 0;
+        let gastosMaterial = 0;
+        let gastosMaquina = 0;
+        let gastosModelado = 0;
+        let gastosExtras = 0;
         
         // Process Pieces
         const productMap = new Map<string, {revenue: number, count: number}>();
@@ -77,8 +77,20 @@ export function FinancialOverview() {
             // Revenue
             ventas += (p.total_venta || 0);
             
-            // COGS (Direct Cost of the piece)
-            costoVentas += (p.total_costo || 0);
+            // Costs Breakdown
+            const qty = p.cantidad || 0;
+            // Material
+            // Use snapshot if available, otherwise fallback (though snapshot should exist for history)
+            const matCostUnit = (p.costo_filamento_snapshot) || 0; 
+            gastosMaterial += (matCostUnit * qty);
+
+            // Machine
+            const machCostUnit = (p.tiempo_impresora_h || 0) * (p.costo_impresora_h_rate || 0);
+            gastosMaquina += (machCostUnit * qty);
+
+            // Modeling
+            const modCostUnit = (p.tiempo_modelado_h || 0) * (p.costo_modelado_h_rate || 0);
+            gastosModelado += (modCostUnit * qty);
 
             // Product Analysis
             const current = productMap.get(p.nombre_pieza) || { revenue: 0, count: 0 };
@@ -90,33 +102,31 @@ export function FinancialOverview() {
 
         // Process Extras
         extrasData?.forEach((e: any) => {
-            // Only count extras if attached to a valid job (or global/loose extras if allowed)
-            // For now, let's assume all fetched extras are valid.
-            
             if (e.es_venta) {
                 ventas += (e.subtotal || 0);
             }
             
             if (e.es_costo) {
-                // If it's a cost, is it COGS or Expense?
-                // Usually "ExtraMaterial" might be COGS, "Shipping" might be Expense.
-                // For simplicity: All 'Extras' marked as cost are Operating Expenses (Gastos) unless specified.
-                // Or we could treat them as COGS if they are attached to a piece. 
-                // Let's assume they are Gastos for this simplified view.
-                gastos += (e.subtotal || 0);
+                // Determine if this is material or generic expense.
+                // Since we don't have a strict type for extras, we'll put them in 'Gastos Operativos' (gastosExtras)
+                // as requested to separate from "Gastos Filamento" and "Gastos Maquina".
+                gastosExtras += (e.subtotal || 0);
             }
         });
 
-        const gananciaBruta = ventas - costoVentas;
-        const gananciaOperativa = gananciaBruta - gastos;
+        const totalCostosProduccion = gastosMaterial + gastosMaquina + gastosModelado;
+        const gananciaBruta = ventas - totalCostosProduccion;
+        const gananciaOperativa = gananciaBruta - gastosExtras;
         const impuestos = 0; // 0% placeholder
         const gananciaNeta = gananciaOperativa - impuestos;
 
         setMetrics({
             ventas,
-            costoVentas,
+            gastosMaterial,
+            gastosMaquina,
+            gastosModelado,
+            gastosExtras,
             gananciaBruta,
-            gastos,
             gananciaOperativa,
             impuestos,
             gananciaNeta
@@ -154,26 +164,29 @@ export function FinancialOverview() {
                         <p className="text-xs text-gray-500 mt-1">Ingresos brutos</p>
                     </CardContent>
                 </Card>
+                
                 <Card className="bg-white border-none shadow-md">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-500">Costo de Ventas</CardTitle>
-                        <CreditCard className="h-4 w-4 text-red-600" />
+                        <CardTitle className="text-sm font-medium text-gray-500">Gastos Filamento</CardTitle>
+                        <Layers className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.costoVentas)}</div>
-                        <p className="text-xs text-gray-500 mt-1">Material y producción</p>
+                        <div className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.gastosMaterial)}</div>
+                        <p className="text-xs text-gray-500 mt-1">Consumo de material</p>
                     </CardContent>
                 </Card>
+
                  <Card className="bg-white border-none shadow-md">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-500">Gastos Operativos</CardTitle>
-                        <TrendingDown className="h-4 w-4 text-orange-600" />
+                        <CardTitle className="text-sm font-medium text-gray-500">Gastos Máquina</CardTitle>
+                        <Zap className="h-4 w-4 text-yellow-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.gastos)}</div>
-                        <p className="text-xs text-gray-500 mt-1">Extras y servicios</p>
+                        <div className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.gastosMaquina)}</div>
+                        <p className="text-xs text-gray-500 mt-1">Energía y desgaste</p>
                     </CardContent>
                 </Card>
+
                 <Card className="bg-white border-none shadow-md bg-gradient-to-br from-green-50 to-white">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium text-green-700">Ganancia Neta</CardTitle>
@@ -193,7 +206,7 @@ export function FinancialOverview() {
                 <Card className="lg:col-span-2 border-none shadow-md">
                     <CardHeader>
                         <CardTitle>Estado de Resultados</CardTitle>
-                        <CardDescription>Desglose financiero del periodo</CardDescription>
+                        <CardDescription>Desglose financiero detallado</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
@@ -203,11 +216,33 @@ export function FinancialOverview() {
                                 <span className="font-bold text-gray-900">{formatCurrency(metrics.ventas)}</span>
                             </div>
                             
-                            {/* Costo de Ventas */}
-                            <div className="flex justify-between items-center px-3 text-sm text-red-600">
-                                <span>(-) Costo de Ventas</span>
-                                <span>{formatCurrency(metrics.costoVentas)}</span>
+                            {/* Costs Breakdown */}
+                            <div className="space-y-2 pl-3 border-l-2 border-red-100 ml-1">
+                                <div className="flex justify-between items-center text-sm text-gray-600">
+                                    <div className="flex items-center gap-2">
+                                        <Layers className="h-3 w-3" />
+                                        <span>(-) Gastos Filamento</span>
+                                    </div>
+                                    <span className="text-red-500">{formatCurrency(metrics.gastosMaterial)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm text-gray-600">
+                                    <div className="flex items-center gap-2">
+                                        <Zap className="h-3 w-3" />
+                                        <span>(-) Gastos Máquina/Luz</span>
+                                    </div>
+                                    <span className="text-red-500">{formatCurrency(metrics.gastosMaquina)}</span>
+                                </div>
+                                {metrics.gastosModelado > 0 && (
+                                    <div className="flex justify-between items-center text-sm text-gray-600">
+                                        <div className="flex items-center gap-2">
+                                            <Box className="h-3 w-3" />
+                                            <span>(-) Gastos Modelado 3D</span>
+                                        </div>
+                                        <span className="text-red-500">{formatCurrency(metrics.gastosModelado)}</span>
+                                    </div>
+                                )}
                             </div>
+
 
                             <hr className="border-gray-100" />
 
@@ -218,10 +253,12 @@ export function FinancialOverview() {
                             </div>
 
                             {/* Gastos */}
-                            <div className="flex justify-between items-center px-3 text-sm text-red-600">
-                                <span>(-) Gastos Operativos</span>
-                                <span>{formatCurrency(metrics.gastos)}</span>
-                            </div>
+                            {metrics.gastosExtras > 0 && (
+                                <div className="flex justify-between items-center px-3 text-sm text-red-600">
+                                    <span>(-) Otros Gastos Operativos (Extras)</span>
+                                    <span>{formatCurrency(metrics.gastosExtras)}</span>
+                                </div>
+                            )}
 
                             {/* Ganancia Operativa */}
                             <div className="flex justify-between items-center px-3 font-medium text-gray-800">
@@ -279,23 +316,23 @@ export function FinancialOverview() {
                              <CardTitle>Destino del Dinero</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 <div className="space-y-1">
                                     <div className="flex justify-between text-xs text-gray-600">
-                                        <span>Costo Prod.</span>
-                                        <span>{metrics.ventas > 0 ? ((metrics.costoVentas / metrics.ventas) * 100).toFixed(0) : 0}%</span>
+                                        <span>Material</span>
+                                        <span>{metrics.ventas > 0 ? ((metrics.gastosMaterial / metrics.ventas) * 100).toFixed(0) : 0}%</span>
                                     </div>
                                     <div className="w-full bg-gray-100 rounded-full h-2">
-                                        <div className="bg-red-500 h-2 rounded-full" style={{ width: `${metrics.ventas > 0 ? (metrics.costoVentas / metrics.ventas) * 100 : 0}%` }}></div>
+                                        <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${metrics.ventas > 0 ? (metrics.gastosMaterial / metrics.ventas) * 100 : 0}%` }}></div>
                                     </div>
                                 </div>
                                 <div className="space-y-1">
                                     <div className="flex justify-between text-xs text-gray-600">
-                                        <span>Gastos</span>
-                                        <span>{metrics.ventas > 0 ? ((metrics.gastos / metrics.ventas) * 100).toFixed(0) : 0}%</span>
+                                        <span>Máquina</span>
+                                        <span>{metrics.ventas > 0 ? ((metrics.gastosMaquina / metrics.ventas) * 100).toFixed(0) : 0}%</span>
                                     </div>
                                     <div className="w-full bg-gray-100 rounded-full h-2">
-                                        <div className="bg-orange-500 h-2 rounded-full" style={{ width: `${metrics.ventas > 0 ? (metrics.gastos / metrics.ventas) * 100 : 0}%` }}></div>
+                                        <div className="bg-yellow-500 h-2 rounded-full" style={{ width: `${metrics.ventas > 0 ? (metrics.gastosMaquina / metrics.ventas) * 100 : 0}%` }}></div>
                                     </div>
                                 </div>
                                 <div className="space-y-1">
