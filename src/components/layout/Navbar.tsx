@@ -125,6 +125,15 @@ export default function Navbar({ visible }: NavbarProps) {
                         </NavigationMenuContent>
                     </NavigationMenuItem>
 
+                    {/* Catálogo Link */}
+                    <NavigationMenuItem>
+                      <Link href="/catalogo" legacyBehavior passHref>
+                        <NavigationMenuLink className={`${navigationMenuTriggerStyle()} bg-transparent text-naranja hover:bg-naranja/10 hover:text-naranja focus:bg-naranja/10 focus:text-naranja !text-base !font-extrabold`}>
+                          Catálogo
+                        </NavigationMenuLink>
+                      </Link>
+                    </NavigationMenuItem>
+
                     {/* Recursos Dropdown (New) */}
                     <NavigationMenuItem>
                         <NavigationMenuTrigger className="bg-transparent text-naranja hover:bg-naranja/10 hover:text-naranja focus:bg-naranja/10 focus:text-naranja !text-base !font-extrabold">Recursos</NavigationMenuTrigger>
@@ -251,6 +260,15 @@ export default function Navbar({ visible }: NavbarProps) {
                                                 </Link>
                                             </div>
                                         </div>
+                                        
+                                        <Link
+                                            href="/catalogo"
+                                            onClick={() => setMenuOpen(false)}
+                                            className="text-naranja hover:text-white transition w-full border-b border-white/10 pb-2"
+                                        >
+                                            Catálogo
+                                        </Link>
+
                                         <div className="w-full border-b border-white/10 pb-2">
                                             <span className="block mb-2 text-naranja">Recursos</span>
                                             <div className="pl-4 flex flex-col gap-2 text-base text-white/90 font-medium">

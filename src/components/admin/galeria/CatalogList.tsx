@@ -32,6 +32,7 @@ export function CatalogList({ onEdit, refreshKey }: { onEdit: (item: any) => voi
             <TableHead>Imagen</TableHead>
             <TableHead>Título</TableHead>
             <TableHead>Categoría</TableHead>
+            <TableHead>Etiquetas</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -47,6 +48,16 @@ export function CatalogList({ onEdit, refreshKey }: { onEdit: (item: any) => voi
               </TableCell>
               <TableCell className="font-medium">{item.title}</TableCell>
               <TableCell>{item.category}</TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-1">
+                    {item.tags?.slice(0, 3).map((tag: string) => (
+                        <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                            {tag}
+                        </span>
+                    ))}
+                    {item.tags?.length > 3 && <span className="text-xs text-gray-400">+{item.tags.length - 3}</span>}
+                </div>
+              </TableCell>
               <TableCell className="text-right">
                 <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>
                     <Edit size={16} className="text-blue-600" />

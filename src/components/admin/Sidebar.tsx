@@ -43,6 +43,8 @@ const Sidebar = ({ collapsed }: SidebarProps) => {
             <nav className="space-y-6">
                 <SidebarLink icon={<Home size={28} />} label="Inicio" href="/admin" collapsed={collapsed} />
                 <SidebarLink icon={<ClipboardList size={28} />} label="Proyectos Internos" href="/admin/projects" collapsed={collapsed} />
+                <SidebarLink icon={<Package size={28} />} label="Galería" href="/admin/galeria" collapsed={collapsed} />
+                <SidebarLink icon={<ShoppingCart size={28} />} label="Catálogo Ventas" href="/admin/catalog" collapsed={collapsed} />
                 <SidebarLink icon={<ShoppingCart size={28} />} label="Pedidos" href="/admin/jobs" collapsed={collapsed} />
                 <SidebarLink icon={<Package size={28} />} label="Inventario" href="/admin/inventory" collapsed={collapsed} />
                 <SidebarLink icon={<Users size={28} />} label="Clientes" href="/admin/clients" collapsed={collapsed} />

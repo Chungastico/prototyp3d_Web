@@ -42,9 +42,10 @@ export default function AdminLayoutClient({
             <SidebarGroup>
                 <SidebarGroupLabel>Gestión</SidebarGroupLabel>
                 <SidebarItem href="/admin/projects" icon={FolderKanban} active={isActive('/admin/projects')}>Proyectos Internos</SidebarItem>
+                <SidebarItem href="/admin/galeria" icon={Package} active={isActive('/admin/galeria')}>Galería</SidebarItem>
+                <SidebarItem href="/admin/catalog" icon={ShoppingCart} active={isActive('/admin/catalog')}>Catálogo Ventas</SidebarItem>
                 <SidebarItem href="/admin/jobs" icon={FileText} active={isActive('/admin/jobs')}>Trabajos</SidebarItem>
                 <SidebarItem href="/admin/inventory" icon={Package} active={isActive('/admin/inventory')}>Inventario</SidebarItem>
-                 <SidebarItem href="/admin/catalog" icon={ShoppingCart} active={isActive('/admin/catalog')}>Catálogo 3D</SidebarItem>
                  <SidebarItem href="/admin/calculadora" icon={Calculator} active={isActive('/admin/calculadora')}>Calculadora Express</SidebarItem>
                  <SidebarItem href="/admin/finances" icon={DollarSign} active={isActive('/admin/finances')}>Finanzas</SidebarItem>
             </SidebarGroup>
