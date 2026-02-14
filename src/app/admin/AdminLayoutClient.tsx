@@ -6,6 +6,7 @@ import { Package, LayoutDashboard, FileText, ShoppingCart, Users, FolderKanban, 
 import { UserButton } from "@clerk/nextjs"
 import Image from "next/image"
 import ProtectedPage from "@/components/ProtectedPage"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 
 export default function AdminLayoutClient({
   children,
@@ -61,6 +62,13 @@ export default function AdminLayoutClient({
         </SidebarFooter>
       </Sidebar>
       <main className="flex-1 overflow-auto bg-gray-100 transition-all duration-300">
+          <div className="md:hidden p-4 border-b bg-white flex items-center justify-between sticky top-0 z-10">
+              <div className="flex items-center gap-2">
+                  <SidebarTrigger />
+                  <span className="font-semibold text-gray-700">Menu</span>
+              </div>
+              <UserButton />
+          </div>
           <div className="p-6">
               <ProtectedPage requiredRole="admin">
                   {children}

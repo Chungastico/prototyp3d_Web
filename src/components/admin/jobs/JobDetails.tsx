@@ -172,6 +172,11 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
     const grandTotalCost = totalPiecesCost + totalExtrasCost;
     const grandTotalProfit = grandTotalSale - grandTotalCost;
 
+    // IVA for Crédito Fiscal
+    const isCreditoFiscal = job?.credito_fiscal === true;
+    const ivaAmount = isCreditoFiscal ? grandTotalSale * 0.13 : 0;
+    const grandTotalWithIVA = grandTotalSale + ivaAmount;
+
     if (loading) return <div className="p-8 text-center">Cargando detalles...</div>;
     if (!job) return <div className="p-8 text-center">Pedido no encontrado</div>;
 
@@ -486,6 +491,18 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                 <span>Total Venta</span>
                                 <span>${grandTotalSale.toFixed(2)}</span>
                             </div>
+                            {isCreditoFiscal && (
+                                <>
+                                <div className="flex justify-between text-blue-400 text-sm font-medium mt-1">
+                                    <span>IVA 13%</span>
+                                    <span>${ivaAmount.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-xl font-bold text-blue-300 mt-1">
+                                    <span>Total + IVA</span>
+                                    <span>${grandTotalWithIVA.toFixed(2)}</span>
+                                </div>
+                                </>
+                            )}
                             <div className="flex justify-between text-green-400 text-sm font-medium mt-1">
                                 <span>Ganancia Estimada</span>
                                 <span>${grandTotalProfit.toFixed(2)}</span>

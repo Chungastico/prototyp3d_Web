@@ -38,6 +38,7 @@ export interface GestionTrabajo {
   // Empresa Info
   es_empresa?: boolean;
   nombre_empresa?: string | null;
+  credito_fiscal?: boolean;
 }
 
 export interface PiezaTrabajo {

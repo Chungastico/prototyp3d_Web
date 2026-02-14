@@ -185,7 +185,10 @@ export const QuotePDF: React.FC<QuotePDFProps> = ({ job, pieces, extras, client,
   // Calculate Totals
   const totalPiecesSale = pieces.reduce((sum, p) => sum + p.total_venta, 0);
   const totalExtrasSale = extras.reduce((sum, e) => sum + (e.es_venta ? e.subtotal : 0), 0);
-  const grandTotal = totalPiecesSale + totalExtrasSale;
+  const subtotal = totalPiecesSale + totalExtrasSale;
+  const isCreditoFiscal = job.credito_fiscal === true;
+  const ivaAmount = isCreditoFiscal ? subtotal * 0.13 : 0;
+  const grandTotal = subtotal + ivaAmount;
 
   return (
     <Document>
@@ -200,6 +203,9 @@ export const QuotePDF: React.FC<QuotePDFProps> = ({ job, pieces, extras, client,
                 {/* Left: Title & Company/Client Name */}
                 <View style={styles.clientInfo}>
                     <Text style={styles.title}>Cotización</Text>
+                    {isCreditoFiscal && (
+                        <Text style={{ fontSize: 9, color: '#2563EB', fontWeight: 'bold', marginBottom: 2 }}>CRÉDITO FISCAL</Text>
+                    )}
                     <Text style={{ fontSize: 12 }}>
                         {job.es_empresa && job.nombre_empresa ? job.nombre_empresa : (client?.nombre_cliente || '')}
                     </Text>
@@ -255,10 +261,27 @@ export const QuotePDF: React.FC<QuotePDFProps> = ({ job, pieces, extras, client,
 
             {/* Totals */}
             <View style={styles.totalsSection}>
-            <View style={styles.totalRow}>
-                <Text style={[styles.totalLabel, styles.grandTotal]}>Total</Text>
-                <Text style={[styles.totalValue, styles.grandTotal]}>${grandTotal.toFixed(2)}</Text>
-            </View>
+            {isCreditoFiscal ? (
+                <>
+                <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>Subtotal</Text>
+                    <Text style={styles.totalValue}>${subtotal.toFixed(2)}</Text>
+                </View>
+                <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>IVA 13%</Text>
+                    <Text style={styles.totalValue}>${ivaAmount.toFixed(2)}</Text>
+                </View>
+                <View style={styles.totalRow}>
+                    <Text style={[styles.totalLabel, styles.grandTotal]}>Total</Text>
+                    <Text style={[styles.totalValue, styles.grandTotal]}>${grandTotal.toFixed(2)}</Text>
+                </View>
+                </>
+            ) : (
+                <View style={styles.totalRow}>
+                    <Text style={[styles.totalLabel, styles.grandTotal]}>Total</Text>
+                    <Text style={[styles.totalValue, styles.grandTotal]}>${grandTotal.toFixed(2)}</Text>
+                </View>
+            )}
             </View>
 
             {/* Notes (Absolute position at bottom) */}
@@ -267,7 +290,11 @@ export const QuotePDF: React.FC<QuotePDFProps> = ({ job, pieces, extras, client,
                 <Text>• Tiempo estimado de entrega: 2 a 4 días hábiles (dependiendo de la cantidad y disponibilidad).</Text>
                 <Text>• El diseño personalizado tiene un costo adicional en caso de requerir arte gráfico.</Text>
                 <Text>• Precios en dólares estadounidenses (USD), válidos por 15 días a partir de la fecha de emisión.</Text>
-                <Text>• Los precios no incluyen IVA. En caso de requerir crédito fiscal, por favor solicitarlo previamente.</Text>
+                {isCreditoFiscal ? (
+                    <Text>• Los precios incluyen IVA (13%).</Text>
+                ) : (
+                    <Text>• Los precios no incluyen IVA. En caso de requerir crédito fiscal, por favor solicitarlo previamente.</Text>
+                )}
                 <Text>• Se requiere un anticipo del 50% para iniciar la producción.</Text>
                 <Text>• Prototyp3D se compromete a mantener la confidencialidad de todos los archivos e información.</Text>
             </View>

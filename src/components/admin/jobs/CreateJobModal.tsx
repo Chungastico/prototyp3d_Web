@@ -55,6 +55,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
     // Company State
     const [isCompany, setIsCompany] = useState(false);
     const [companyName, setCompanyName] = useState('');
+    const [creditoFiscal, setCreditoFiscal] = useState(false);
 
     useEffect(() => {
         if (open) {
@@ -68,6 +69,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                 setFusionUrl(jobToEdit.fusion_project_url || '');
                 setIsCompany(jobToEdit.es_empresa || false);
                 setCompanyName(jobToEdit.nombre_empresa || '');
+                setCreditoFiscal(jobToEdit.credito_fiscal || false);
             } else {
                 // Reset form
                 setNombreProyecto('');
@@ -79,6 +81,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                 setFusionUrl('');
                 setIsCompany(false);
                 setCompanyName('');
+                setCreditoFiscal(false);
             }
         }
     }, [open, jobToEdit]);
@@ -134,7 +137,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
     };
 
     const handleSubmit = async () => {
-        if (!nombreProyecto || !selectedClientId || !fechaEntrega) return;
+        if (!nombreProyecto || !fechaEntrega) return;
         setLoading(true);
 
         try {
@@ -157,7 +160,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
             // 3. Create or Update Job
             const payload: any = {
                 nombre_proyecto: nombreProyecto,
-                cliente_id: selectedClientId,
+                cliente_id: selectedClientId || null,
                 fecha_solicitado: fechaSolicitado,
                 fecha_entrega: fechaEntrega,
                 // Only set status defaults on create
@@ -168,6 +171,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                 fusion_project_url: fusionUrl || null,
                 es_empresa: isCompany,
                 nombre_empresa: isCompany ? companyName : null,
+                credito_fiscal: isCompany ? creditoFiscal : false,
             };
 
             if (thumbnailUrl) payload.thumbnail_url = thumbnailUrl;
@@ -233,14 +237,29 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                         </div>
                         
                         {isCompany && (
-                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                                <Label htmlFor="companyName">Nombre de la Empresa</Label>
-                                <Input 
-                                    id="companyName" 
-                                    value={companyName} 
-                                    onChange={(e) => setCompanyName(e.target.value)} 
-                                    placeholder="Ej. ESROBOTICA S.A. de C.V."
-                                />
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="companyName">Nombre de la Empresa</Label>
+                                    <Input 
+                                        id="companyName" 
+                                        value={companyName} 
+                                        onChange={(e) => setCompanyName(e.target.value)} 
+                                        placeholder="Ej. ESROBOTICA S.A. de C.V."
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50/50 border border-blue-100">
+                                    <div className="flex flex-col">
+                                        <Label htmlFor="creditoFiscal" className="cursor-pointer text-sm">¿Requiere Crédito Fiscal?</Label>
+                                        <span className="text-xs text-gray-500">Se agregará IVA 13% al precio final</span>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        id="creditoFiscal"
+                                        checked={creditoFiscal}
+                                        onChange={(e) => setCreditoFiscal(e.target.checked)}
+                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                </div>
                             </div>
                         )}
                     </div>
@@ -462,7 +481,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                     <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
                     <Button 
                         onClick={handleSubmit} 
-                        disabled={loading || !nombreProyecto || !selectedClientId || !fechaEntrega}
+                        disabled={loading || !nombreProyecto || !fechaEntrega}
                         className="bg-naranja hover:bg-orange-600 text-white"
                     >
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
