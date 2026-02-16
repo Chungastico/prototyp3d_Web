@@ -67,6 +67,25 @@ export function PurchaseModal({ open, onOpenChange, currentInventory, onSaved }:
                 throw new Error(`Error guardando historial: ${purchaseError.message}`);
             }
 
+            // 1.5 Insert into Finance Transactions
+            const transactionPayload = {
+                tipo: 'gasto',
+                categoria: 'Materia Prima',
+                descripcion: `Compra Filamento: ${selectedFilament?.material} ${selectedFilament?.color_tipo_filamento} (${selectedFilament?.marca})`,
+                monto: cost,
+                fecha: new Date().toISOString(),
+                notas: 'Generado automáticamente desde Inventario'
+            };
+
+            const { error: financeError } = await supabase
+                .from('transacciones_financieras')
+                .insert([transactionPayload]);
+
+            if (financeError) {
+                console.error("Error creating finance record:", financeError);
+                throw new Error(`Error registrando gasto financiero: ${financeError.message}`);
+            }
+
             // 2. Update Inventory Stock & Prices
             const newStock = (selectedFilament?.stock_gramos_disponibles || 0) + quantityToAdd;            
             const { error: updateError } = await supabase

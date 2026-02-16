@@ -13,12 +13,15 @@ import { es } from 'date-fns/locale';
 export interface JobsListProps {
     onEdit: (job: GestionTrabajo) => void;
     refreshKey: number;
+    selectedJobId: string | null;
+    onSelectJob: (id: string | null) => void;
 }
 
-export function JobsList({ onEdit, refreshKey }: JobsListProps) {
+export function JobsList({ onEdit, refreshKey, selectedJobId, onSelectJob }: JobsListProps) {
     const [jobs, setJobs] = useState<GestionTrabajo[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+    // Filter State: 'active' (en proceso), 'delivered' (entregado), 'all' (todos)
+    const [filterStatus, setFilterStatus] = useState<'active' | 'delivered' | 'all'>('active');
 
     const fetchJobs = async () => {
         setLoading(true);
@@ -26,14 +29,17 @@ export function JobsList({ onEdit, refreshKey }: JobsListProps) {
             .from('gestion_trabajos')
             .select(`
                 *,
-                cliente:clientes(nombre_cliente)
+                cliente:clientes(nombre_cliente),
+                piezas_trabajo ( total_venta ),
+                extras_aplicados ( subtotal, es_venta )
             `)
             .order('fecha_solicitado', { ascending: false });
 
         if (error) {
             console.error("Error fetching jobs:", error);
         } else {
-            setJobs(data || []);
+            console.log("Jobs Data:", data); 
+            setJobs(data as any || []);
         }
         setLoading(false);
     };
@@ -81,27 +87,72 @@ export function JobsList({ onEdit, refreshKey }: JobsListProps) {
     }
 
     if (selectedJobId) {
-        return <JobDetails jobId={selectedJobId} onBack={() => { setSelectedJobId(null); fetchJobs(); }} />;
+        return <JobDetails jobId={selectedJobId} onBack={() => { onSelectJob(null); fetchJobs(); }} />;
     }
+
+    const filteredJobs = jobs.filter(job => {
+        if (filterStatus === 'all') return true;
+        if (filterStatus === 'delivered') return job.estado === 'entregado';
+        if (filterStatus === 'active') return job.estado !== 'entregado';
+        return true;
+    });
 
     return (
         <div className="space-y-6">
+            {/* Status Tabs */}
+            <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
+                <button
+                    onClick={() => setFilterStatus('active')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                        filterStatus === 'active' 
+                        ? 'bg-white text-gray-900 shadow-sm' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    En Proceso
+                </button>
+                <button
+                    onClick={() => setFilterStatus('delivered')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                        filterStatus === 'delivered' 
+                        ? 'bg-white text-gray-900 shadow-sm' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    Entregados
+                </button>
+                <button
+                    onClick={() => setFilterStatus('all')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                        filterStatus === 'all' 
+                        ? 'bg-white text-gray-900 shadow-sm' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    Todos
+                </button>
+            </div>
+
             {loading ? (
                 <div className="flex justify-center py-12">
                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-naranja border-t-transparent"></div>
                 </div>
-            ) : jobs.length === 0 ? (
+            ) : filteredJobs.length === 0 ? (
                  <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
                     <Package className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900">No hay pedidos registrados</h3>
-                    <p className="text-gray-500 mt-1">Comienza creando un nuevo pedido para gestionar tu producción.</p>
+                    <h3 className="text-lg font-medium text-gray-900">No hay pedidos {filterStatus === 'active' ? 'en proceso' : filterStatus === 'delivered' ? 'entregados' : ''}</h3>
+                    <p className="text-gray-500 mt-1">
+                        {filterStatus === 'active' 
+                            ? '¡Buen trabajo! No tienes pedidos pendientes.' 
+                            : 'Comienza creando un nuevo pedido para gestionar tu producción.'}
+                    </p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-4">
-                    {jobs.map((job) => (
+                    {filteredJobs.map((job) => (
                         <div 
                             key={job.id} 
-                            onClick={() => setSelectedJobId(job.id)}
+                            onClick={() => onSelectJob(job.id)}
                             className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition-shadow cursor-pointer group"
                         >
                             <div className="flex items-start justify-between">
@@ -131,13 +182,39 @@ export function JobsList({ onEdit, refreshKey }: JobsListProps) {
                                     </div>
                                 </div>
                                 
+                                    
                                 <div className="flex flex-col items-end gap-2">
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(job.estado)}`}>
                                         {formatStatus(job.estado)}
                                     </span>
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${job.estado_pago === 'pagado' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                                        {job.estado_pago === 'pagado' ? 'PAGADO' : 'PENDIENTE PAGO'}
-                                    </span>
+                                    {(() => {
+                                        const piecesTotal = (job as any).piezas_trabajo?.reduce((sum: number, p: any) => sum + (p.total_venta || 0), 0) || 0;
+                                        const extrasTotal = (job as any).extras_aplicados?.reduce((sum: number, e: any) => sum + (e.es_venta ? (e.subtotal || 0) : 0), 0) || 0;
+                                        const grandTotal = piecesTotal + extrasTotal;
+                                        const isPaid = (job.total_pagado || 0) >= (grandTotal - 0.01); // Small epsilon for float diffs
+                                        const isPartial = (job.total_pagado || 0) > 0 && !isPaid;
+
+                                        if (job.estado === 'cotizado') {
+                                            return null;
+                                        }
+                                        
+                                        return (
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${
+                                                isPaid 
+                                                ? 'bg-green-50 text-green-700 border-green-200' 
+                                                : isPartial
+                                                    ? 'bg-orange-50 text-orange-700 border-orange-200'
+                                                    : 'bg-red-50 text-red-700 border-red-200'
+                                            }`}>
+                                                {isPaid ? 'PAGADO' : isPartial ? 'PARCIAL' : 'PENDIENTE'}
+                                                {!isPaid && (
+                                                    <span className="ml-1 opacity-75">
+                                                        (${(grandTotal - (job.total_pagado || 0)).toFixed(2)})
+                                                    </span>
+                                                )}
+                                            </span>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                             

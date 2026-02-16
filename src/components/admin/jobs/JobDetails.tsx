@@ -10,6 +10,9 @@ import { ExtrasSelector } from './ExtrasSelector';
 import { CreateJobModal } from './CreateJobModal';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { QuotePDF } from './QuotePDF';
@@ -135,6 +138,25 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
         }
     };
 
+    const handlePaymentUpdate = async (amountToAdd: number) => {
+        if (!job) return;
+        const current = job.total_pagado || 0;
+        const newTotal = current + amountToAdd;
+
+        const { error } = await supabase
+            .from('gestion_trabajos')
+            .update({ total_pagado: newTotal })
+            .eq('id', jobId);
+
+        if (!error) {
+            setJob({ ...job, total_pagado: newTotal });
+        } else {
+            console.error(error);
+            console.error(error);
+            alert(`Error al actualizar pago: ${JSON.stringify(error)}`);
+        }
+    };
+
     const deletePiece = async (id: string) => {
         if (!confirm('¿Estás seguro de que quieres eliminar esta pieza?')) return;
         
@@ -227,85 +249,135 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                     </div>
                 </div>
                 
-                <div className="flex gap-2 items-center">
-                    {/* Status Buttons */}
-                     <div className="flex gap-1">
-                        {['aprobado', 'entregado'].map((s) => (
-                            <button
-                                key={s}
-                                onClick={() => updateStatus(s)}
-                                className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all ${
-                                    job.estado === s 
-                                    ? 'bg-gray-900 text-white border-gray-900' 
-                                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
-                                }`}
-                            >
-                                {s.charAt(0).toUpperCase() + s.slice(1)}
-                            </button>
-                        ))}
+
+
+                <div className="flex flex-col items-end gap-3">
+                    {/* 1. Job Workflow Status */}
+                     <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
+                        {['activo', 'entregado', 'cancelado'].map((s) => {
+                            const isActive = 
+                                s === 'activo' ? ['aprobado', 'en_produccion', 'listo', 'cotizado'].includes(job.estado) :
+                                job.estado === s;
+                                
+                            const label = s === 'activo' ? 'En Proceso' : s.charAt(0).toUpperCase() + s.slice(1);
+                            
+                            return (
+                                <button
+                                    key={s}
+                                    onClick={() => {
+                                        if (s === 'activo') updateStatus('aprobado'); 
+                                        else updateStatus(s);
+                                    }}
+                                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                                        isActive
+                                        ? s === 'cancelado' 
+                                            ? 'bg-red-100 text-red-700 shadow-sm' 
+                                            : s === 'entregado'
+                                                ? 'bg-green-100 text-green-700 shadow-sm'
+                                                : 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                            );
+                        })}
                     </div>
 
-                    {/* Cancellation Options */}
-                    {(job.estado !== 'cancelado' && job.estado !== 'parcialmente_cancelado') ? (
-                         <div className="flex gap-1 ml-2 border-l pl-2 border-gray-200">
-                             <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
-                                onClick={() => {
-                                    const amount = prompt("Monto cobrado por cancelación (si aplica):", "0");
-                                    if (amount !== null) {
-                                        const numAmount = parseFloat(amount);
-                                        if (!isNaN(numAmount)) {
-                                            updateStatus('cancelado', numAmount);
-                                        } else {
-                                            alert("Monto inválido");
-                                        }
-                                    }
-                                }}
-                             >
-                                Cancelar
-                             </Button>
-                             <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-7 text-xs text-orange-500 hover:text-orange-600 hover:bg-orange-50"
-                                onClick={() => {
-                                     const amount = prompt("Monto cobrado (Parcial):", "0");
-                                    if (amount !== null) {
-                                        const numAmount = parseFloat(amount);
-                                         if (!isNaN(numAmount)) {
-                                            updateStatus('parcialmente_cancelado', numAmount);
-                                        } else {
-                                            alert("Monto inválido");
-                                        }
-                                    }
-                                }}
-                             >
-                                Parc. Cancelado
-                             </Button>
-                         </div>
-                    ) : (
-                         <span className={`ml-2 px-3 py-1 text-xs font-semibold rounded-full border ${
-                            job.estado === 'cancelado' 
-                                ? 'bg-red-100 text-red-700 border-red-200' 
-                                : 'bg-orange-100 text-orange-700 border-orange-200'
-                         }`}>
-                            {job.estado === 'cancelado' ? 'Cancelado' : 'Parc. Cancelado'}
-                             {job.monto_cobrado !== undefined && job.monto_cobrado !== null && (
-                                 <span className="ml-1 font-normal text-xs opacity-75">
-                                     (${job.monto_cobrado.toFixed(2)})
-                                 </span>
-                             )}
-                        </span>
-                    )}
+                    {/* 2. Payment Status Control */}
+                    <div className="flex items-center gap-3">
+                        <div className="text-right">
+                             <div className="text-sm font-bold text-gray-900">
+                                {job.total_pagado >= grandTotalSale ? (
+                                    <span className="text-green-600 flex items-center gap-1 justify-end">
+                                        <CheckCircle className="h-3 w-3" /> Pagado
+                                    </span>
+                                ) : (
+                                    <span className={`${job.total_pagado > 0 ? 'text-orange-600' : 'text-red-600'}`}>
+                                        Pendiente: ${(grandTotalSale - (job.total_pagado || 0)).toFixed(2)}
+                                    </span>
+                                )}
+                             </div>
+                             <div className="text-xs text-gray-500">
+                                Pagado: ${(job.total_pagado || 0).toFixed(2)} / ${grandTotalSale.toFixed(2)}
+                             </div>
+                        </div>
 
-                    {/* Read-only indicators for automated statuses */}
-                    {['cotizado', 'en_produccion', 'listo'].includes(job.estado) && (
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full border bg-gray-900 text-white border-gray-900`}>
-                            {job.estado === 'en_produccion' ? 'En Producción' : job.estado.charAt(0).toUpperCase() + job.estado.slice(1)}
-                        </span>
-                    )}
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 border-dashed border-gray-300 hover:border-naranja hover:text-naranja"
+                                >
+                                    <DollarSign className="h-3 w-3 mr-1" />
+                                    Registrar Pago
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 p-4" align="end">
+                                <div className="space-y-4">
+                                    <h4 className="font-medium leading-none">Registrar Pago</h4>
+                                    <p className="text-sm text-gray-500">
+                                        Saldo pendiente: <span className="font-bold text-gray-900">${(grandTotalSale - (job.total_pagado || 0)).toFixed(2)}</span>
+                                    </p>
+                                    
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            className="text-xs"
+                                            onClick={() => {
+                                                const pending = grandTotalSale - (job.total_pagado || 0);
+                                                if (pending > 0) handlePaymentUpdate(pending);
+                                            }}
+                                        >
+                                            Pago Completo
+                                        </Button>
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            className="text-xs"
+                                            onClick={() => {
+                                                const half = grandTotalSale * 0.5;
+                                                handlePaymentUpdate(half);
+                                            }}
+                                        >
+                                            50% Anticipo
+                                        </Button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="custom-amount" className="text-xs">Otro Monto</Label>
+                                        <div className="flex gap-2">
+                                            <Input 
+                                                id="custom-amount" 
+                                                type="number" 
+                                                placeholder="0.00" 
+                                                className="h-8 text-sm"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        const val = parseFloat((e.target as HTMLInputElement).value);
+                                                        if (!isNaN(val) && val > 0) handlePaymentUpdate(val);
+                                                    }
+                                                }}
+                                            />
+                                            <Button 
+                                                size="sm" 
+                                                className="h-8 bg-gray-900 text-white hover:bg-gray-800"
+                                                onClick={(e) => {
+                                                    const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                                    const val = parseFloat(input.value);
+                                                    if (!isNaN(val) && val > 0) handlePaymentUpdate(val);
+                                                }}
+                                            >
+                                                Aplicar
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </div>
             </div>
 

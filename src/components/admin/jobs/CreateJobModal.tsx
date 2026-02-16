@@ -25,7 +25,7 @@ import { CalendarIcon } from "lucide-react";
 interface CreateJobModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onJobCreated: () => void;
+    onJobCreated: (jobId?: string) => void;
     jobToEdit?: any; // Using any for simplicity as we map full object
 }
 
@@ -51,6 +51,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
     // New Client State
     const [isCreatingClient, setIsCreatingClient] = useState(false);
     const [newClientName, setNewClientName] = useState('');
+    const [newClientPhone, setNewClientPhone] = useState('');
 
     // Company State
     const [isCompany, setIsCompany] = useState(false);
@@ -64,6 +65,14 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
             if (jobToEdit) {
                 setNombreProyecto(jobToEdit.nombre_proyecto);
                 setSelectedClientId(jobToEdit.cliente_id);
+                // Attempt to find client name if we have the list loaded? 
+                // We might not have clients loaded yet. Effect dependency handles it?
+                // Actually fetchClients is async. 
+                // We'll trust that when clients load (or if they are already loaded), we can find the name.
+                // But wait, initially 'clients' is empty.
+                // We need to set searchClient when clients are loaded OR when jobToEdit is set.
+                // Let's rely on a separate effect or just check if clients has data.
+                
                 setFechaSolicitado(jobToEdit.fecha_solicitado.split('T')[0]); // Ensure format
                 setFechaEntrega(jobToEdit.fecha_entrega ? jobToEdit.fecha_entrega.split('T')[0] : '');
                 setFusionUrl(jobToEdit.fusion_project_url || '');
@@ -74,6 +83,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                 // Reset form
                 setNombreProyecto('');
                 setSelectedClientId(null);
+                setSearchClient('');
                 setFechaSolicitado(new Date().toISOString().split('T')[0]);
                 setFechaEntrega('');
                 setThumbnailFile(null);
@@ -85,6 +95,14 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
             }
         }
     }, [open, jobToEdit]);
+
+    // Effect to sync searchClient with selectedClientId when opening or loading
+    useEffect(() => {
+        if (selectedClientId && clients.length > 0) {
+            const client = clients.find(c => c.id === selectedClientId);
+            if (client) setSearchClient(client.nombre_cliente);
+        }
+    }, [selectedClientId, clients]);
 
     const fetchClients = async () => {
         const { data, error } = await supabase
@@ -101,9 +119,14 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
         if (!newClientName.trim()) return;
         setLoading(true);
         
+        const payload: any = { nombre_cliente: newClientName };
+        if (newClientPhone.trim()) {
+            payload.telefono = newClientPhone.trim();
+        }
+
         const { data, error } = await supabase
             .from('clientes')
-            .insert([{ nombre_cliente: newClientName }])
+            .insert([payload])
             .select()
             .single();
 
@@ -114,6 +137,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
             setSelectedClientId(data.id);
             setIsCreatingClient(false);
             setNewClientName('');
+            setNewClientPhone('');
             setOpenClientCombo(false);
         }
         setLoading(false);
@@ -194,7 +218,12 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
 
             if (error) throw error;
 
-            onJobCreated();
+            if (error) throw error;
+            
+            // Get the ID of the job we just handled
+            const finalJobId = jobToEdit ? jobToEdit.id : (data && data.length > 0 ? data[0].id : null);
+
+            onJobCreated(finalJobId);
             onOpenChange(false);
         } catch (error) {
             console.error("Error creating job:", error);
@@ -267,78 +296,137 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                     {/* Client Selector */}
                     <div className="space-y-2 flex flex-col">
                         <Label>Cliente</Label>
-                        <Popover open={openClientCombo} onOpenChange={setOpenClientCombo}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    aria-expanded={openClientCombo}
-                                    className="justify-between font-normal"
-                                >
-                                    {selectedClientId
-                                        ? clients.find((c) => c.id === selectedClientId)?.nombre_cliente
-                                        : "Seleccionar cliente..."}
-                                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="p-0" align="start">
-                                <Command>
-                                    <CommandInput placeholder="Buscar cliente..." onValueChange={setSearchClient} />
-                                    <CommandList>
-                                        <CommandEmpty>
-                                            <div className="p-2 text-center">
-                                                <p className="text-sm text-gray-500 mb-2">No encontrado</p>
-                                                <Button 
-                                                    size="sm" 
-                                                    variant="secondary" 
-                                                    className="w-full"
-                                                    onClick={() => setIsCreatingClient(true)}
-                                                >
-                                                    <UserPlus className="h-3 w-3 mr-2" />
-                                                    Crear "{searchClient}"
-                                                </Button>
-                                            </div>
-                                        </CommandEmpty>
-                                        <CommandGroup>
-                                            {clients.map((client) => (
-                                                <CommandItem
-                                                    key={client.id}
-                                                    value={client.nombre_cliente}
-                                                    onSelect={() => {
-                                                        setSelectedClientId(client.id);
-                                                        setOpenClientCombo(false);
-                                                    }}
-                                                >
-                                                    <Check
-                                                        className={cn(
-                                                            "mr-2 h-4 w-4",
-                                                            selectedClientId === client.id ? "opacity-100" : "opacity-0"
-                                                        )}
-                                                    />
-                                                    {client.nombre_cliente}
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
                         
-                        {/* Inline Client Creation */}
-                        {isCreatingClient && (
-                            <div className="flex gap-2 mt-2 items-end animate-in fade-in slide-in-from-top-1">
-                                <div className="flex-1 space-y-1">
-                                    <Label htmlFor="newClient" className="text-xs">Nombre Nuevo Cliente</Label>
-                                    <Input 
-                                        id="newClient" 
-                                        value={newClientName} 
-                                        onChange={(e) => setNewClientName(e.target.value)}
-                                        placeholder="Nombre del cliente"
-                                    />
+                        {isCreatingClient ? (
+                            <div className="p-4 border rounded-lg bg-gray-50/80 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                                    <span className="text-sm font-medium text-gray-700">Crear Nuevo Cliente</span>
+                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setIsCreatingClient(false)}>
+                                        <X className="h-4 w-4 text-gray-400" />
+                                    </Button>
                                 </div>
-                                <Button size="sm" onClick={handleCreateClient} disabled={loading}>Guardar</Button>
-                                <Button size="sm" variant="ghost" onClick={() => setIsCreatingClient(false)}>Cancelar</Button>
+                                <div className="grid gap-3">
+                                    <div className="grid gap-1.5">
+                                        <Label htmlFor="newClient" className="text-xs font-medium text-gray-600">Nombre Completo</Label>
+                                        <Input 
+                                            id="newClient" 
+                                            value={newClientName} 
+                                            onChange={(e) => setNewClientName(e.target.value)}
+                                            placeholder="Nombre del cliente"
+                                            className="bg-white"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleCreateClient();
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="grid gap-1.5">
+                                        <Label htmlFor="newClientPhone" className="text-xs font-medium text-gray-600">Teléfono (Opcional)</Label>
+                                        <Input 
+                                            id="newClientPhone" 
+                                            value={newClientPhone} 
+                                            onChange={(e) => setNewClientPhone(e.target.value)}
+                                            placeholder="Ej. 7777-7777"
+                                            className="bg-white"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleCreateClient();
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex justify-end pt-1 gap-2">
+                                    <Button size="sm" variant="outline" onClick={() => setIsCreatingClient(false)}>Cancelar</Button>
+                                    <Button size="sm" onClick={handleCreateClient} disabled={loading || !newClientName.trim()}>
+                                        {loading ? <Loader2 className="h-3 w-3 animate-spin mr-2"/> : null}
+                                        Guardar Cliente
+                                    </Button>
+                                </div>
                             </div>
+                        ) : (
+                            <Popover open={openClientCombo} onOpenChange={setOpenClientCombo}>
+                                <PopoverTrigger asChild>
+                                    <div className="relative">
+                                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Buscar o crear cliente..."
+                                            value={searchClient}
+                                            onChange={(e) => {
+                                                setSearchClient(e.target.value);
+                                                setOpenClientCombo(true);
+                                                if (selectedClientId) setSelectedClientId(null);
+                                            }}
+                                            onClick={() => setOpenClientCombo(true)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && searchClient.trim()) {
+                                                    const matches = clients.filter(c => 
+                                                        c.nombre_cliente.toLowerCase().includes(searchClient.toLowerCase())
+                                                    );
+                                                    if (matches.length === 0) {
+                                                        e.preventDefault();
+                                                        setNewClientName(searchClient);
+                                                        setIsCreatingClient(true);
+                                                        setOpenClientCombo(false);
+                                                    }
+                                                }
+                                            }}
+                                            className={cn(
+                                                "pl-8",
+                                                !selectedClientId && "text-muted-foreground"
+                                            )}
+                                        />
+                                    </div>
+                                </PopoverTrigger>
+                                <PopoverContent className="p-0 w-[400px]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                                    <Command shouldFilter={false}>
+                                        <CommandList>
+                                            <CommandEmpty>
+                                                <div className="p-4 text-center">
+                                                    <p className="text-sm text-gray-500 mb-3">No se encontró el cliente "{searchClient}"</p>
+                                                    <Button 
+                                                        size="sm" 
+                                                        className="w-full bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200 shadow-sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setNewClientName(searchClient);
+                                                            setIsCreatingClient(true);
+                                                            setOpenClientCombo(false);
+                                                        }}
+                                                    >
+                                                        <UserPlus className="h-3 w-3 mr-2" />
+                                                        Crear nuevo cliente
+                                                    </Button>
+                                                </div>
+                                            </CommandEmpty>
+                                            <CommandGroup heading="Clientes Existentes">
+                                                {clients
+                                                    .filter(client => 
+                                                        !searchClient || 
+                                                        client.nombre_cliente.toLowerCase().includes(searchClient.toLowerCase())
+                                                    )
+                                                    .map((client) => (
+                                                        <CommandItem
+                                                            key={client.id}
+                                                            value={client.nombre_cliente}
+                                                            onSelect={() => {
+                                                                setSelectedClientId(client.id);
+                                                                setSearchClient(client.nombre_cliente);
+                                                                setOpenClientCombo(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    selectedClientId === client.id ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {client.nombre_cliente}
+                                                        </CommandItem>
+                                                    ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                         )}
                     </div>
 
@@ -356,13 +444,13 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                                         )}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {fechaSolicitado ? format(new Date(fechaSolicitado), "PPP", { locale: es }) : <span>Seleccionar fecha</span>}
+                                        {fechaSolicitado ? format(new Date(new Date(fechaSolicitado).getUTCFullYear(), new Date(fechaSolicitado).getUTCMonth(), new Date(fechaSolicitado).getUTCDate()), "PPP", { locale: es }) : <span>Seleccionar fecha</span>}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
                                     <Calendar
                                         mode="single"
-                                        selected={fechaSolicitado ? new Date(fechaSolicitado) : undefined}
+                                        selected={fechaSolicitado ? new Date(new Date(fechaSolicitado).getUTCFullYear(), new Date(fechaSolicitado).getUTCMonth(), new Date(fechaSolicitado).getUTCDate()) : undefined}
                                         onSelect={(date) => date && setFechaSolicitado(format(date, 'yyyy-MM-dd'))}
                                         initialFocus
                                     />
@@ -381,7 +469,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                                         )}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {fechaEntrega ? format(new Date(fechaEntrega), "PPP", { locale: es }) : <span>Seleccionar fecha</span>}
+                                        {fechaEntrega ? format(new Date(new Date(fechaEntrega).getUTCFullYear(), new Date(fechaEntrega).getUTCMonth(), new Date(fechaEntrega).getUTCDate()), "PPP", { locale: es }) : <span>Seleccionar fecha</span>}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
@@ -413,7 +501,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                                     </div>
                                     <Calendar
                                         mode="single"
-                                        selected={fechaEntrega ? new Date(fechaEntrega) : undefined}
+                                        selected={fechaEntrega ? new Date(new Date(fechaEntrega).getUTCFullYear(), new Date(fechaEntrega).getUTCMonth(), new Date(fechaEntrega).getUTCDate()) : undefined}
                                         onSelect={(date) => date && setFechaEntrega(format(date, 'yyyy-MM-dd'))}
                                         initialFocus
                                         disabled={(date) => date < new Date(fechaSolicitado)}

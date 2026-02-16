@@ -22,6 +22,21 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface PieceFormProps {
     open: boolean;
@@ -33,6 +48,7 @@ interface PieceFormProps {
 export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit }: PieceFormProps & { pieceToEdit?: PiezaTrabajo | null }) {
     const [loading, setLoading] = useState(false);
     const [filaments, setFilaments] = useState<InventarioFilamento[]>([]);
+    const [openFilamentCombo, setOpenFilamentCombo] = useState(false);
     
     // Form Factors
     const COSTO_IMPRESORA_H = 0.50;
@@ -48,24 +64,45 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
     // New State for Split Time
     const [printingHours, setPrintingHours] = useState(0);
     const [printingMinutes, setPrintingMinutes] = useState(0);
+
+
+    const [tiempoMod, setTotalModelingHours] = useState(0); // This will now be derived or unused if we split state
+    
+    // Split Modeling Time State
+    const [modelingHours, setModelingHours] = useState(0);
+    const [modelingMinutes, setModelingMinutes] = useState(0);
+
     // Derived total hours for calculation
     const totalPrintingHours = printingHours + (printingMinutes / 60);
+    const totalModelingHoursInput = modelingHours + (modelingMinutes / 60);
 
-    const [tiempoMod, setTiempoMod] = useState(0); // hours
-    
-    // Financials (Manual)
-    const [precioFinalUnit, setPrecioFinalUnit] = useState(0);
+    // Financials (Manual) - Now representing BASE Price (Hardware/Print only)
+    const [basePrice, setBasePrice] = useState(0);
 
     // Derived
     const selectedFilament = filaments.find(f => f.id === selectedFilamentId);
     const precioGramo = selectedFilament?.precio_por_gramo || 0;
     const costoFilamento = gramosUnit * precioGramo;
-    const costoTotalUnit = costoFilamento + (totalPrintingHours * COSTO_IMPRESORA_H) + (tiempoMod * COSTO_MODELADO_H);
+    const costoImpresion = totalPrintingHours * COSTO_IMPRESORA_H;
     
+    // Amortize modeling cost per unit
+    const totalModelingCost = totalModelingHoursInput * COSTO_MODELADO_H;
+    const amortizedModelingCost = cantidad > 0 ? totalModelingCost / cantidad : 0;
+    const amortizedModelingHours = cantidad > 0 ? totalModelingHoursInput / cantidad : 0;
+
+    // Total Production Cost (Unit) = Mat + PrintTime + AmortizedModeling
+    const costoTotalUnit = costoFilamento + costoImpresion + amortizedModelingCost;
+    
+    // Suggested Pricing (just for printing part)
     const suggestedMin = totalPrintingHours * 1.0; 
     const suggestedMax = totalPrintingHours * 2.0;
 
-    const gananciaUnit = precioFinalUnit - costoTotalUnit;
+    // Final Price to Customer (Unit) = Base Price (for print) + Amortized Modeling Cost
+    const precioFinalUnit = basePrice + amortizedModelingCost;
+
+    // Profit (Unit) = Base Price - (Material + PrintTime)
+    // We exclude modeling cost from profit calc because it's effectively "paid" by the extra charge
+    const gananciaUnit = basePrice - (costoFilamento + costoImpresion);
 
     useEffect(() => {
         if (open) {
@@ -76,13 +113,22 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                 setCantidad(pieceToEdit.cantidad);
                 setGramosUnit(pieceToEdit.gramos_usados);
                 
-                const hours = Math.floor(pieceToEdit.tiempo_impresora_h);
-                const minutes = Math.round((pieceToEdit.tiempo_impresora_h - hours) * 60);
-                setPrintingHours(hours);
-                setPrintingMinutes(minutes);
+                const pHours = Math.floor(pieceToEdit.tiempo_impresora_h);
+                const pMinutes = Math.round((pieceToEdit.tiempo_impresora_h - pHours) * 60);
+                setPrintingHours(pHours);
+                setPrintingMinutes(pMinutes);
                 
-                setTiempoMod(pieceToEdit.tiempo_modelado_h || 0);
-                setPrecioFinalUnit(pieceToEdit.precio_final_unit);
+                // Load TOTAL modeling hours (Unit hours * Qty)
+                const totalModHours = (pieceToEdit.tiempo_modelado_h || 0) * pieceToEdit.cantidad;
+                const mHours = Math.floor(totalModHours);
+                const mMinutes = Math.round((totalModHours - mHours) * 60);
+                setModelingHours(mHours);
+                setModelingMinutes(mMinutes);
+                
+                // Reverse engineer base price: Final Unit Price - Amortized Modeling Cost
+                const unitModelCost = (pieceToEdit.tiempo_modelado_h || 0) * COSTO_MODELADO_H;
+                setBasePrice(pieceToEdit.precio_final_unit - unitModelCost);
+                
                 setSelectedFilamentId(pieceToEdit.filamento_id);
             } else {
                 // Reset
@@ -92,8 +138,9 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                 setGramosUnit(0);
                 setPrintingHours(0);
                 setPrintingMinutes(0);
-                setTiempoMod(0);
-                setPrecioFinalUnit(0);
+                setModelingHours(0);
+                setModelingMinutes(0);
+                setBasePrice(0);
                 setSelectedFilamentId('');
             }
         }
@@ -128,7 +175,7 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                 costo_filamento_snapshot: costoFilamento,
                 
                 tiempo_impresora_h: totalPrintingHours,
-                tiempo_modelado_h: tiempoMod,
+                tiempo_modelado_h: amortizedModelingHours, // Save per-unit (amortized)
                 costo_impresora_h_rate: COSTO_IMPRESORA_H,
                 costo_modelado_h_rate: COSTO_MODELADO_H,
                 
@@ -167,8 +214,6 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
             }
 
             // 2. Update/Insert Consumo Filamento
-            // Simple approach: Delete existing consumption for this piece and recreate it.
-            // This handles changing filament type, quantity, etc. cleanly.
             if (pieceId) {
                 // Delete old consumption
                 await supabase
@@ -193,19 +238,12 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                 if (consumoError) console.error("Error creating/updating consumption:", consumoError);
                 
                 // 3. Update Inventory Stock (Deduct Usage)
-                // Calculate net change in consumption
                 let gramsToDeduct = gramosTotales;
 
                 if (pieceToEdit) {
-                    // If editing, we only deduct the DIFFERENCE (New - Old)
-                    // If we used MORE, gramsToDeduct is positive (Stock goes down)
-                    // If we used LESS, gramsToDeduct is negative (Stock goes up)
-                    
-                    // Check if filament changed. If changed, we need to return stock to old filament and take from new.
                     if (pieceToEdit.filamento_id !== selectedFilamentId) {
-                        // Complex case: Return stock to OLD filament
+                        // Return stock to OLD filament
                         const oldTotal = pieceToEdit.gramos_usados * pieceToEdit.cantidad;
-                        // We need to fetch the old filament's current stock to update it properly
                         const { data: oldFilamentData } = await supabase
                             .from('inventario_filamento')
                             .select('stock_gramos_disponibles')
@@ -219,8 +257,6 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                                 .update({ stock_gramos_disponibles: restoredStock })
                                 .eq('id', pieceToEdit.filamento_id);
                         }
-                        
-                        // Treat the new filament as a fresh deduction
                         gramsToDeduct = gramosTotales; 
 
                     } else {
@@ -230,7 +266,6 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                     }
                 }
 
-                // Fetch latest stock for the CURRENT target filament to ensure accuracy
                 const { data: currentFilamentData } = await supabase
                     .from('inventario_filamento')
                     .select('stock_gramos_disponibles')
@@ -241,12 +276,10 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                     const currentStock = currentFilamentData.stock_gramos_disponibles || 0;
                     const newStock = currentStock - gramsToDeduct;
 
-                    const { error: stockError } = await supabase
+                    await supabase
                         .from('inventario_filamento')
                         .update({ stock_gramos_disponibles: newStock })
                         .eq('id', selectedFilamentId);
-                    
-                    if (stockError) console.error("Error updating stock:", stockError);
                 }
             }
 
@@ -289,53 +322,59 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                                     }} 
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label>Filamento</Label>
-                                <Select value={selectedFilamentId} onValueChange={setSelectedFilamentId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Seleccionar..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {filaments.map(f => (
-                                            <SelectItem key={f.id} value={f.id}>
-                                                {f.color_tipo_filamento}
-                                                {f.marca ? ` - ${f.marca}` : ''} ({f.material}) - ${f.precio_por_gramo.toFixed(2)}/g
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Gramos (Unit)</Label>
-                                <Input 
-                                    type="number" 
-                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    value={gramosUnit === 0 ? '' : gramosUnit} 
-                                    onChange={e => {
-                                        const val = e.target.value;
-                                        setGramosUnit(val === '' ? 0 : parseFloat(val));
-                                    }} 
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Horas Mod.</Label>
-                                <Input 
-                                    type="number" 
-                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    value={tiempoMod === 0 ? '' : tiempoMod} 
-                                    onChange={e => {
-                                        const val = e.target.value;
-                                        setTiempoMod(val === '' ? 0 : parseFloat(val));
-                                    }} 
-                                />
+                            <div className="space-y-2 flex flex-col">
+                                <Label className="mb-2">Filamento</Label>
+                                <Popover open={openFilamentCombo} onOpenChange={setOpenFilamentCombo}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openFilamentCombo}
+                                            className="w-full justify-between font-normal"
+                                        >
+                                            {selectedFilamentId
+                                                ? filaments.find((f) => f.id === selectedFilamentId)?.color_tipo_filamento + ` (${filaments.find((f) => f.id === selectedFilamentId)?.material})`
+                                                : "Seleccionar..."}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar filamento..." />
+                                            <CommandList>
+                                                <CommandEmpty>No se encontró filamento.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {filaments.map((f) => (
+                                                        <CommandItem
+                                                            key={f.id}
+                                                            value={`${f.color_tipo_filamento} ${f.material} ${f.marca}`}
+                                                            onSelect={() => {
+                                                                setSelectedFilamentId(f.id);
+                                                                setOpenFilamentCombo(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    selectedFilamentId === f.id ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            <div className="flex flex-col">
+                                                                <span>{f.color_tipo_filamento} - {f.marca}</span>
+                                                                <span className="text-xs text-gray-500">{f.material} • ${f.precio_por_gramo.toFixed(2)}/g</span>
+                                                            </div>
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Tiempo Impresión</Label>
+                             <Label>Tiempo Impresión</Label>
                             <div className="flex gap-4">
                                 <div className="flex-1 relative">
                                     <Input 
@@ -369,6 +408,55 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                             </div>
                         </div>
 
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Gramos (Unit)</Label>
+                                <Input 
+                                    type="number" 
+                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    value={gramosUnit === 0 ? '' : gramosUnit} 
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        setGramosUnit(val === '' ? 0 : parseFloat(val));
+                                    }} 
+                                />
+                            </div>
+                            <div className="space-y-2 col-span-1">
+                                <Label>Tiempo Mod. (Total)</Label>
+                                <div className="flex gap-2">
+                                    <div className="flex-1 relative">
+                                        <Input 
+                                            type="number" 
+                                            placeholder="0" 
+                                            className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none pr-8"
+                                            min="0"
+                                            value={modelingHours === 0 ? '' : modelingHours} 
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                setModelingHours(val === '' ? 0 : parseInt(val));
+                                            }} 
+                                        />
+                                        <span className="absolute right-2 top-2.5 text-xs text-gray-500 pointer-events-none">h</span>
+                                    </div>
+                                    <div className="flex-1 relative">
+                                        <Input 
+                                            type="number" 
+                                            placeholder="0" 
+                                            className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none pr-8"
+                                            min="0"
+                                            max="59"
+                                            value={modelingMinutes === 0 ? '' : modelingMinutes} 
+                                            onChange={e => {
+                                                 const val = e.target.value;
+                                                 setModelingMinutes(val === '' ? 0 : parseInt(val));
+                                            }} 
+                                        />
+                                        <span className="absolute right-2 top-2.5 text-xs text-gray-500 pointer-events-none">m</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                          <div className="space-y-2">
                             <Label>Descripción (Opcional)</Label>
                             <Textarea value={descripcion} onChange={e => setDescripcion(e.target.value)} />
@@ -390,20 +478,20 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                                 </div>
                                 <div className="flex justify-between text-gray-600">
                                     <span>Impresión ({totalPrintingHours.toFixed(2)}h * ${COSTO_IMPRESORA_H}):</span>
-                                    <span>${(totalPrintingHours * COSTO_IMPRESORA_H).toFixed(2)}</span>
+                                    <span>${costoImpresion.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between text-gray-600">
-                                    <span>Modelado ({tiempoMod}h * ${COSTO_MODELADO_H}):</span>
-                                    <span>${(tiempoMod * COSTO_MODELADO_H).toFixed(2)}</span>
+                                <div className="flex justify-between text-blue-600 bg-blue-50 p-1 rounded font-medium">
+                                    <span>+ Modelado ({totalModelingHoursInput.toFixed(2)}h total):</span>
+                                    <span>${totalModelingCost.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between font-medium text-gray-900 pt-2 border-t">
-                                    <span>Costo Total Unitario:</span>
+                                    <span>Costo Prod. Unitario:</span>
                                     <span>${costoTotalUnit.toFixed(2)}</span>
                                 </div>
                             </div>
                             
-                             <div className="bg-blue-50 p-3 rounded-lg text-xs text-blue-700 space-y-1">
-                                <p className="font-semibold">Rango Sugerido:</p>
+                             <div className="bg-naranja/5 p-3 rounded-lg text-xs text-naranja space-y-1">
+                                <p className="font-semibold">Rango Sugerido (Impresión):</p>
                                 <div className="flex justify-between">
                                     <span>Min: ${suggestedMin.toFixed(2)}</span>
                                     <span>Max: ${suggestedMax.toFixed(2)}</span>
@@ -413,16 +501,26 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
 
                         <div className="space-y-4 pt-6 border-t border-gray-200 mt-4">
                             <div className="space-y-2">
-                                <Label className="text-naranja font-bold">Precio Final Unitario ($)</Label>
+                                <Label className="text-gray-900 font-semibold flex justify-between">
+                                    <span>Precio Base (Impresión + Material)</span>
+                                    <span className="text-xs font-normal text-gray-500 self-center">Sin incluir modelado</span>
+                                </Label>
                                 <Input 
                                     type="number" 
-                                    className="text-lg font-bold"
-                                    value={precioFinalUnit === 0 ? '' : precioFinalUnit} 
+                                    className="text-lg"
+                                    value={basePrice === 0 ? '' : basePrice} 
                                     onChange={e => {
                                         const val = e.target.value;
-                                        setPrecioFinalUnit(val === '' ? 0 : parseFloat(val));
+                                        setBasePrice(val === '' ? 0 : parseFloat(val));
                                     }} 
                                 />
+                            </div>
+                            
+                            <div className="space-y-2 bg-white p-3 rounded-lg border border-gray-200">
+                                <div className="flex justify-between items-center text-lg font-bold text-naranja">
+                                    <span>Total Venta:</span>
+                                    <span>${((basePrice * cantidad) + totalModelingCost).toFixed(2)}</span>
+                                </div>
                             </div>
                             
                             <div className="grid grid-cols-2 gap-4 text-center">
@@ -433,9 +531,9 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                                     </span>
                                 </div>
                                 <div className="bg-gray-900 p-2 rounded text-white">
-                                    <span className="block text-xs text-gray-300">Total Venta ({cantidad})</span>
+                                    <span className="block text-xs text-gray-300">Precio Unit. Final</span>
                                     <span className="block font-bold">
-                                        ${(precioFinalUnit * cantidad).toFixed(2)}
+                                        ${precioFinalUnit.toFixed(2)}
                                     </span>
                                 </div>
                             </div>

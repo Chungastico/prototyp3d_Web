@@ -31,6 +31,7 @@ export interface GestionTrabajo {
   fecha_solicitado: string;
   fecha_entrega: string;
   monto_cobrado?: number | null; // Amount actually collected if cancelled/partial
+  total_pagado: number;
   thumbnail_url: string | null;
   fusion_project_url: string | null;
   files: any | null; 

@@ -13,9 +13,17 @@ export default function JobsPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [jobToEdit, setJobToEdit] = useState<GestionTrabajo | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Lifted state for project details view
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
-  const handleJobCreated = () => {
+  const handleJobCreated = (newJobId?: string) => {
     setRefreshKey(prev => prev + 1);
+    if (newJobId) {
+       setSelectedJobId(newJobId);
+       // Ensure we are in projects view to show the details
+       setCurrentView('projects');
+    }
   };
 
   return (
@@ -25,7 +33,10 @@ export default function JobsPage() {
           <Button
             variant={currentView === 'projects' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setCurrentView('projects')}
+            onClick={() => {
+                setCurrentView('projects');
+                setSelectedJobId(null);
+            }}
             className={`gap-2 ${currentView === 'projects' ? 'bg-naranja hover:bg-orange-600 text-white' : 'text-gray-600'}`}
           >
             <LayoutGrid className="h-4 w-4" />
@@ -34,7 +45,10 @@ export default function JobsPage() {
           <Button
             variant={currentView === 'pieces' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setCurrentView('pieces')}
+            onClick={() => {
+                setCurrentView('pieces');
+                setSelectedJobId(null);
+            }}
             className={`gap-2 ${currentView === 'pieces' ? 'bg-naranja hover:bg-orange-600 text-white' : 'text-gray-600'}`}
           >
             <Puzzle className="h-4 w-4" />
@@ -58,6 +72,8 @@ export default function JobsPage() {
                 setCreateModalOpen(true);
             }} 
             refreshKey={refreshKey}
+            selectedJobId={selectedJobId}
+            onSelectJob={setSelectedJobId}
         />
       ) : (
         <PiecesKanban />
