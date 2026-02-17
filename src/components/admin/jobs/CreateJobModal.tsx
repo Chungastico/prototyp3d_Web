@@ -180,7 +180,6 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                 projectFileUrl = await handleFileUpload(projectFile, 'project-files', path);
             }
 
-            // 3. Create Job
             // 3. Create or Update Job
             const payload: any = {
                 nombre_proyecto: nombreProyecto,
@@ -202,6 +201,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
             if (projectFileUrl) payload.files = { url: projectFileUrl, name: projectFile?.name };
 
             let error;
+            let data;
             
             if (jobToEdit) {
                  const { error: updateError } = await supabase
@@ -210,13 +210,13 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                     .eq('id', jobToEdit.id);
                  error = updateError;
             } else {
-                const { error: insertError } = await supabase
+                const { data: insertData, error: insertError } = await supabase
                     .from('gestion_trabajos')
-                    .insert([payload]);
+                    .insert([payload])
+                    .select(); // Capture returned data
+                data = insertData;
                 error = insertError;
             }
-
-            if (error) throw error;
 
             if (error) throw error;
             
@@ -357,15 +357,32 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                                             }}
                                             onClick={() => setOpenClientCombo(true)}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter' && searchClient.trim()) {
+                                                if (e.key === 'Tab' && searchClient.trim()) {
                                                     const matches = clients.filter(c => 
                                                         c.nombre_cliente.toLowerCase().includes(searchClient.toLowerCase())
                                                     );
-                                                    if (matches.length === 0) {
+                                                    if (matches.length > 0) {
                                                         e.preventDefault();
-                                                        setNewClientName(searchClient);
-                                                        setIsCreatingClient(true);
+                                                        setSelectedClientId(matches[0].id);
+                                                        setSearchClient(matches[0].nombre_cliente);
                                                         setOpenClientCombo(false);
+                                                    }
+                                                }
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    if (searchClient.trim()) {
+                                                        const matches = clients.filter(c => 
+                                                            c.nombre_cliente.toLowerCase().includes(searchClient.toLowerCase())
+                                                        );
+                                                        if (matches.length === 0) {
+                                                            setNewClientName(searchClient);
+                                                            setIsCreatingClient(true);
+                                                            setOpenClientCombo(false);
+                                                        } else {
+                                                            setSelectedClientId(matches[0].id);
+                                                            setSearchClient(matches[0].nombre_cliente);
+                                                            setOpenClientCombo(false);
+                                                        }
                                                     }
                                                 }
                                             }}
