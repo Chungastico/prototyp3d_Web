@@ -28,6 +28,7 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
     const [extras, setExtras] = useState<ExtraAplicado[]>([]);
     const [extraNames, setExtraNames] = useState<Record<string, string>>({});
     const [filamentNames, setFilamentNames] = useState<Record<string, string>>({});
+    const [filamentMaterials, setFilamentMaterials] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
     const [isClient, setIsClient] = useState(false);
     
@@ -63,16 +64,19 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
             if (filamentIds.length > 0) {
                 const { data: filaments } = await supabase
                     .from('inventario_filamento')
-                    .select('id, color_tipo_filamento')
+                    .select('id, color_tipo_filamento, material')
                     .in('id', filamentIds);
                 
                 const fMap: Record<string, string> = {};
+                const mMap: Record<string, string> = {};
                 if (filaments) {
                     filaments.forEach(f => {
                          fMap[f.id] = f.color_tipo_filamento;
+                         mMap[f.id] = f.material || '-';
                     });
                 }
                 setFilamentNames(fMap);
+                setFilamentMaterials(mMap);
             }
         }
 
@@ -225,6 +229,7 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                             client={(job as any).cliente} 
                                             extraNames={extraNames}
                                             filamentNames={filamentNames}
+                                            filamentMaterials={filamentMaterials}
                                         />
                                     }
                                     fileName={`${(job.es_empresa && job.nombre_empresa 
@@ -288,18 +293,18 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                     <div className="flex items-center gap-3">
                         <div className="text-right">
                              <div className="text-sm font-bold text-gray-900">
-                                {job.total_pagado >= grandTotalSale ? (
+                                {job.total_pagado >= grandTotalWithIVA ? (
                                     <span className="text-green-600 flex items-center gap-1 justify-end">
                                         <CheckCircle className="h-3 w-3" /> Pagado
                                     </span>
                                 ) : (
                                     <span className={`${job.total_pagado > 0 ? 'text-orange-600' : 'text-red-600'}`}>
-                                        Pendiente: ${(grandTotalSale - (job.total_pagado || 0)).toFixed(2)}
+                                        Pendiente: ${(grandTotalWithIVA - (job.total_pagado || 0)).toFixed(2)}
                                     </span>
                                 )}
                              </div>
                              <div className="text-xs text-gray-500">
-                                Pagado: ${(job.total_pagado || 0).toFixed(2)} / ${grandTotalSale.toFixed(2)}
+                                Pagado: ${(job.total_pagado || 0).toFixed(2)} / ${grandTotalWithIVA.toFixed(2)}
                              </div>
                         </div>
 
@@ -318,7 +323,7 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                 <div className="space-y-4">
                                     <h4 className="font-medium leading-none">Registrar Pago</h4>
                                     <p className="text-sm text-gray-500">
-                                        Saldo pendiente: <span className="font-bold text-gray-900">${(grandTotalSale - (job.total_pagado || 0)).toFixed(2)}</span>
+                                        Saldo pendiente: <span className="font-bold text-gray-900">${(grandTotalWithIVA - (job.total_pagado || 0)).toFixed(2)}</span>
                                     </p>
                                     
                                     <div className="grid grid-cols-2 gap-2">
@@ -327,7 +332,7 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                             size="sm"
                                             className="text-xs"
                                             onClick={() => {
-                                                const pending = grandTotalSale - (job.total_pagado || 0);
+                                                const pending = grandTotalWithIVA - (job.total_pagado || 0);
                                                 if (pending > 0) handlePaymentUpdate(pending);
                                             }}
                                         >
@@ -338,7 +343,7 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                             size="sm"
                                             className="text-xs"
                                             onClick={() => {
-                                                const half = grandTotalSale * 0.5;
+                                                const half = grandTotalWithIVA * 0.5;
                                                 handlePaymentUpdate(half);
                                             }}
                                         >

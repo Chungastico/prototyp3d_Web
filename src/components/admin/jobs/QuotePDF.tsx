@@ -93,20 +93,24 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
   },
   tableCol: {
-    width: "15%",
+    width: "13%",
+    padding: 5,
+  },
+  tableColMaterial: {
+    width: "12%",
     padding: 5,
   },
   tableColDesc: {
-    width: "40%",
+    width: "33%",
     padding: 5,
   },
   tableColQty: {
-    width: "10%",
+    width: "8%",
     textAlign: 'center',
     padding: 5,
   },
   tableColPrice: {
-    width: "15%",
+    width: "17%",
     textAlign: 'right',
     padding: 5,
   },
@@ -172,9 +176,10 @@ interface QuotePDFProps {
   client: Cliente | null;
   extraNames: Record<string, string>;
   filamentNames?: Record<string, string>;
+  filamentMaterials?: Record<string, string>;
 }
 
-export const QuotePDF: React.FC<QuotePDFProps> = ({ job, pieces, extras, client, extraNames, filamentNames = {} }) => {
+export const QuotePDF: React.FC<QuotePDFProps> = ({ job, pieces, extras, client, extraNames, filamentNames = {}, filamentMaterials = {} }) => {
   // Manual concatenation to avoid escaping issues
   const dateObj = new Date();
   const day = format(dateObj, 'dd', { locale: es });
@@ -204,7 +209,7 @@ export const QuotePDF: React.FC<QuotePDFProps> = ({ job, pieces, extras, client,
                 <View style={styles.clientInfo}>
                     <Text style={styles.title}>Cotización</Text>
                     {isCreditoFiscal && (
-                        <Text style={{ fontSize: 9, color: '#2563EB', fontWeight: 'bold', marginBottom: 2 }}>CRÉDITO FISCAL</Text>
+                        <Text style={{ fontSize: 9, color: '#262C4D', fontWeight: 'bold', marginBottom: 2 }}>CRÉDITO FISCAL</Text>
                     )}
                     <Text style={{ fontSize: 12 }}>
                         {job.es_empresa && job.nombre_empresa ? job.nombre_empresa : (client?.nombre_cliente || '')}
@@ -225,6 +230,7 @@ export const QuotePDF: React.FC<QuotePDFProps> = ({ job, pieces, extras, client,
             <View style={[styles.tableRow, styles.tableHeader]}>
                 <View style={styles.tableColDesc}><Text style={styles.tableCell}>Descripción</Text></View>
                 <View style={styles.tableCol}><Text style={styles.tableCell}>Color</Text></View>
+                <View style={styles.tableColMaterial}><Text style={styles.tableCell}>Material</Text></View>
                 <View style={styles.tableColQty}><Text style={styles.tableCell}>Cant.</Text></View>
                 <View style={styles.tableColPrice}><Text style={styles.tableCell}>Precio U.</Text></View>
                 <View style={styles.tableColPrice}><Text style={styles.tableCell}>Total</Text></View>
@@ -236,6 +242,7 @@ export const QuotePDF: React.FC<QuotePDFProps> = ({ job, pieces, extras, client,
                 <View style={styles.tableColDesc}><Text style={styles.tableCell}>{piece.nombre_pieza}</Text></View>
                 {/* Use filament name from prop map, fallback to '-' */}
                 <View style={styles.tableCol}><Text style={styles.tableCell}>{filamentNames[piece.filamento_id || ''] || '-'}</Text></View>
+                <View style={styles.tableColMaterial}><Text style={styles.tableCell}>{filamentMaterials[piece.filamento_id || ''] || '-'}</Text></View>
                 <View style={styles.tableColQty}><Text style={styles.tableCell}>{piece.cantidad}</Text></View>
                 <View style={styles.tableColPrice}><Text style={styles.tableCell}>${piece.precio_final_unit.toFixed(2)}</Text></View>
                 <View style={styles.tableColPrice}><Text style={styles.tableCell}>${piece.total_venta.toFixed(2)}</Text></View>
@@ -252,6 +259,7 @@ export const QuotePDF: React.FC<QuotePDFProps> = ({ job, pieces, extras, client,
                     </Text>
                 </View>
                 <View style={styles.tableCol}><Text style={styles.tableCell}>-</Text></View>
+                <View style={styles.tableColMaterial}><Text style={styles.tableCell}>-</Text></View>
                 <View style={styles.tableColQty}><Text style={styles.tableCell}>{extra.cantidad}</Text></View>
                 <View style={styles.tableColPrice}><Text style={styles.tableCell}>${extra.precio_unitario_snapshot.toFixed(2)}</Text></View>
                 <View style={styles.tableColPrice}><Text style={styles.tableCell}>${extra.subtotal.toFixed(2)}</Text></View>
