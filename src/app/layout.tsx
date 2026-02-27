@@ -7,6 +7,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { GoogleAnalytics } from '@next/third-parties/google';
 import '@react-three/fiber';
+import { Amplitude } from "@/components/Amplitude";
 
 const SITE_URL = 'https://www.prototyp3dsv.com';
 
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 </head>
                 <body className="font-sans bg-beige-claro text-negro">
                     {children}
+                    <Amplitude />
                     <SpeedInsights />
                     <Analytics />
                     <GoogleAnalytics gaId="G-F6BWYC8X2F" />
