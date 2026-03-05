@@ -24,14 +24,16 @@ export default function StudentLayoutClient({
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader className="py-4">
-           <Image 
-             src="/images/logo/Letras.png" 
-             alt="Prototyp3D Logo" 
-             width={180} 
-             height={60} 
-             className="w-auto h-12 ml-4"
-           />
+        <SidebarHeader className="py-3">
+           <div className="ml-4 h-10 overflow-hidden flex items-center">
+             <Image 
+               src="/images/logo/Letras.png" 
+               alt="Prototyp3D Logo" 
+               width={200} 
+               height={200} 
+               className="w-44 flex-shrink-0"
+             />
+           </div>
         </SidebarHeader>
         <SidebarContent>
             <SidebarGroup>
@@ -41,15 +43,23 @@ export default function StudentLayoutClient({
             </SidebarGroup>
             
         </SidebarContent>
-        <SidebarFooter className="p-4 flex flex-row items-center gap-2">
-             <UserButton 
-                afterSignOutUrl="/" 
-                userProfileMode="navigation"
-                userProfileUrl="/dashboard/perfil"
-             >
-                <UserButton.MenuItems>
-                </UserButton.MenuItems>
-             </UserButton>
+        <SidebarFooter
+            className="p-4 flex flex-row items-center gap-2 cursor-pointer hover:bg-white/10 rounded-lg transition-colors"
+            onClick={() => {
+                const btn = document.getElementById('clerk-user-btn')?.querySelector('button');
+                btn?.click();
+            }}
+        >
+             <div id="clerk-user-btn" onClick={(e) => e.stopPropagation()}>
+                <UserButton 
+                   afterSignOutUrl="/" 
+                   userProfileMode="navigation"
+                   userProfileUrl="/dashboard/perfil"
+                >
+                   <UserButton.MenuItems>
+                   </UserButton.MenuItems>
+                </UserButton>
+             </div>
              <span className="text-sm font-medium text-white/90">Mi Cuenta</span>
         </SidebarFooter>
       </Sidebar>

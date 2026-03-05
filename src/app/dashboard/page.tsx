@@ -5,7 +5,16 @@ import { Plus, Package, FileText, ChevronRight, Clock, CheckCircle2, AlertCircle
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
-function getStatusInfo(status: string) {
+function getStatusInfo(status: string, files?: any[]) {
+    // If all uploaded files have been quoted by admin, show a more accurate label
+    const allFilesQuoted = status === 'cotizado' &&
+        Array.isArray(files) && files.length > 0 &&
+        files.every((f: any) => f.quoted);
+
+    if (allFilesQuoted) {
+        return { label: 'Cotización Lista', color: 'text-green-600 bg-green-50 border-green-200', icon: CheckCircle2 };
+    }
+
     switch (status) {
         case 'cotizado':
             return { label: 'Esperando Aprobación', color: 'text-blue-600 bg-blue-50 border-blue-200', icon: Clock };
@@ -95,22 +104,20 @@ export default async function DashboardPage() {
                 ) : (
                     <div className="divide-y divide-gray-100">
                         {proyectos?.map((proyecto) => {
-                            const StatusIcon = getStatusInfo(proyecto.estado).icon;
-                            
-                            // Determinar si la cotización está lista (por ejemplo si ya tiene piezas asignadas, 
-                            // o si el admin le cambió el estado a 'aprobado' o si total_venta > 0.
-                            // Para ser simples, asumiremos que si tiene "total_pagado" > 0 o "estado" diferente de cotizado.
-                            // You can refine this logic based on how Quotes are finalized in your system.
-                            // But usually, Admin downloads STLs -> generates pieces -> prints PDF quote -> student approves.
+                            const statusInfo = getStatusInfo(proyecto.estado, proyecto.files);
+                            const StatusIcon = statusInfo.icon;
+                            const allFilesQuoted = proyecto.estado === 'cotizado' &&
+                                Array.isArray(proyecto.files) && proyecto.files.length > 0 &&
+                                proyecto.files.every((f: any) => f.quoted);
                             
                             return (
                                 <div key={proyecto.id} className="p-6 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
                                             <h3 className="text-lg font-semibold text-gray-900">{proyecto.nombre_proyecto}</h3>
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1.5 ${getStatusInfo(proyecto.estado).color}`}>
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1.5 ${statusInfo.color}`}>
                                                 <StatusIcon className="h-3.5 w-3.5" />
-                                                {getStatusInfo(proyecto.estado).label}
+                                                {statusInfo.label}
                                             </span>
                                         </div>
                                         <div className="flex flex-wrap gap-4 text-sm text-gray-500">
@@ -134,7 +141,11 @@ export default async function DashboardPage() {
 
                                     <div className="flex items-center gap-3">
                                         {proyecto.estado === 'cotizado' && (
-                                            <span className="hidden sm:inline-block text-sm text-gray-500 italic mr-2">Cotizando...</span>
+                                            <span className={`hidden sm:inline-block text-sm italic mr-2 ${
+                                                allFilesQuoted ? 'text-green-600 font-medium' : 'text-gray-500'
+                                            }`}>
+                                                {allFilesQuoted ? '✓ Lista para revisar' : 'Cotizando...'}
+                                            </span>
                                         )}
                                         <Link 
                                             href={`/dashboard/proyectos/${proyecto.id}`}

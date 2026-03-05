@@ -28,11 +28,14 @@ interface StudentProjectFilesProps {
     creditoFiscal?: boolean;
     pieces?: PiezaSimple[];
     filamentNames?: Record<string, string>;
+    isActiveStudent?: boolean;
 }
 
-export default function StudentProjectFiles({ jobId, clientId, initialFiles, estado, grandTotal, creditoFiscal: initialCF, pieces = [], filamentNames = {} }: StudentProjectFilesProps) {
+export default function StudentProjectFiles({ jobId, clientId, initialFiles, estado, grandTotal, creditoFiscal: initialCF, pieces = [], filamentNames = {}, isActiveStudent = false }: StudentProjectFilesProps) {
     const router = useRouter();
-    const canEdit = estado === 'cotizado';
+    // Can edit only if in 'cotizado' state AND not all files have been quoted by admin yet
+    const allFilesQuoted = Array.isArray(initialFiles) && initialFiles.length > 0 && initialFiles.every((f: any) => f.quoted);
+    const canEdit = estado === 'cotizado' && !allFilesQuoted;
     const [cfEnabled, setCfEnabled] = useState(initialCF ?? false);
     const [cfSaving, setCfSaving] = useState(false);
 
@@ -135,12 +138,14 @@ export default function StudentProjectFiles({ jobId, clientId, initialFiles, est
 
     // ─── READ-ONLY VIEW ──────────────────────────────────────────────────────────
     if (!canEdit) {
-        const hasPieces = pieces.length > 0;
-        const hasPendingFiles = files.length > 0;
+        const quotedFiles = files.filter(f => f.quoted);
+        const pendingFiles = files.filter(f => !f.quoted);
+        const partialTotal = quotedFiles.reduce((sum: number, f: any) => sum + (f.quoted_total || 0), 0);
 
         return (
             <div className="space-y-4">
-                {/* Crédito Fiscal Banner */}
+                {/* Crédito Fiscal Banner — only for non-verified students */}
+                {!isActiveStudent && (
                 <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
                     <Receipt className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
                     <div className="flex-1">
@@ -160,28 +165,45 @@ export default function StudentProjectFiles({ jobId, clientId, initialFiles, est
                         {cfSaving ? 'Guardando...' : cfEnabled ? 'Sí, necesito CF' : 'No requiero CF'}
                     </button>
                 </div>
+                )}
 
-                {/* Quoted Pieces */}
-                {hasPieces && (
+                {/* Quoted files — show with price */}
+                {quotedFiles.length > 0 && (
                     <div>
                         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Piezas Cotizadas</h3>
                         <div className="space-y-2">
-                            {pieces.map((piece, idx) => (
-                                <div key={piece.id} className="rounded-xl border border-green-200 bg-green-50/40 overflow-hidden">
+                            {quotedFiles.map((file: any, idx: number) => (
+                                <div key={idx} className="rounded-xl border border-green-200 bg-green-50/40 overflow-hidden">
                                     <div className="flex items-center justify-between p-4">
                                         <div className="flex items-center gap-3">
-                                            <span className="bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">{idx + 1}</span>
+                                            <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
                                             <div>
-                                                <p className="font-semibold text-gray-900 text-sm">{piece.nombre_pieza}</p>
-                                                <p className="text-xs text-gray-400">
-                                                    {filamentNames[piece.filamento_id] || 'Filamento'} • {piece.cantidad} unidad{piece.cantidad !== 1 ? 'es' : ''}
-                                                </p>
+                                                <p className="font-semibold text-gray-900 text-sm">{file.quoted_name || file.name}</p>
+                                                <p className="text-xs text-gray-400 font-mono">{file.filename}</p>
+                                                {file.material && (
+                                                    <span className="text-xs px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded border border-indigo-100 font-medium mt-0.5 inline-block">{file.material}</span>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-xs text-gray-500">Precio unit.</p>
-                                            <p className="font-bold text-gray-900">${piece.precio_final_unit.toFixed(2)}</p>
-                                            <p className="text-xs text-naranja font-semibold">Total: ${piece.total_venta.toFixed(2)}</p>
+                                            <p className="text-xs text-gray-500">×{file.quoted_qty || file.quantity || 1} unidad(es)</p>
+                                            {isActiveStudent ? (
+                                                <>
+                                                    <div className="flex items-baseline justify-end gap-1.5">
+                                                        <span className="text-xs text-red-400 line-through">${((file.quoted_price_unit || 0) / 0.8).toFixed(2)}</span>
+                                                        <span className="font-bold text-gray-900">${(file.quoted_price_unit || 0).toFixed(2)} c/u</span>
+                                                    </div>
+                                                    <div className="flex items-baseline justify-end gap-1.5">
+                                                        <span className="text-xs text-red-400 line-through">${((file.quoted_total || 0) / 0.8).toFixed(2)}</span>
+                                                        <span className="text-sm font-semibold text-naranja">Total: ${(file.quoted_total || 0).toFixed(2)}</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p className="font-bold text-gray-900">${(file.quoted_price_unit || 0).toFixed(2)} c/u</p>
+                                                    <p className="text-sm font-semibold text-naranja">Total: ${(file.quoted_total || 0).toFixed(2)}</p>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -190,16 +212,16 @@ export default function StudentProjectFiles({ jobId, clientId, initialFiles, est
                     </div>
                 )}
 
-                {/* Pending files (not yet quoted) */}
-                {hasPendingFiles && (
+                {/* Pending files */}
+                {pendingFiles.length > 0 && (
                     <div>
                         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                            Archivos Pendientes de Cotizar
+                            Archivos Pendientes ({pendingFiles.length})
                         </h3>
                         <div className="space-y-2">
-                            {files.map((file, idx) => (
+                            {pendingFiles.map((file: any, idx: number) => (
                                 <div key={idx} className="rounded-xl border border-gray-200 overflow-hidden">
-                                    <div className="flex items-center justify-between p-4 bg-gray-50">
+                                    <div className="flex items-center justify-between p-3 bg-gray-50/50">
                                         <div className="flex items-center gap-3">
                                             <span className="bg-gray-300 text-gray-600 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">{idx + 1}</span>
                                             <div>
@@ -208,7 +230,7 @@ export default function StudentProjectFiles({ jobId, clientId, initialFiles, est
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full font-medium">×{file.quantity || 1}</span>
+                                            <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">×{file.quantity || 1}</span>
                                             <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">⏳ Pendiente</span>
                                         </div>
                                     </div>
@@ -218,18 +240,18 @@ export default function StudentProjectFiles({ jobId, clientId, initialFiles, est
                     </div>
                 )}
 
-                {!hasPieces && !hasPendingFiles && (
-                    <p className="text-gray-500 text-sm">Sin archivos.</p>
-                )}
+                {files.length === 0 && <p className="text-gray-500 text-sm">Sin archivos.</p>}
 
                 {/* Price block */}
                 <div className={`mt-2 rounded-xl border p-5 flex items-center gap-4 ${
                     grandTotal && grandTotal > 0
                         ? 'border-green-200 bg-green-50'
-                        : 'border-dashed border-gray-300 bg-gray-50'
+                        : quotedFiles.length > 0
+                            ? 'border-naranja/30 bg-orange-50/30'
+                            : 'border-dashed border-gray-300 bg-gray-50'
                 }`}>
                     <div className={`rounded-full p-3 ${
-                        grandTotal && grandTotal > 0 ? 'bg-green-100' : 'bg-gray-200'
+                        grandTotal && grandTotal > 0 ? 'bg-green-100' : quotedFiles.length > 0 ? 'bg-naranja/10' : 'bg-gray-200'
                     }`}>
                         {grandTotal && grandTotal > 0
                             ? <CheckCircle2 className="h-5 w-5 text-green-500" />
@@ -241,17 +263,60 @@ export default function StudentProjectFiles({ jobId, clientId, initialFiles, est
                         {grandTotal && grandTotal > 0 ? (
                             <>
                                 <p className="text-xs text-green-600 mt-0.5">Cotización finalizada por el taller</p>
+                                {isActiveStudent ? (
+                                    // ── Student discount — marketing design ──
+                                    <div className="mt-3 -mx-1">
+                                        {/* Deal banner */}
+                                        <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 mb-3">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <span className="text-xl shrink-0">🎓</span>
+                                                <div className="min-w-0">
+                                                    <p className="text-white font-black text-sm leading-tight">Descuento Estudiante</p>
+                                                    <p className="text-green-100 text-xs">Precio exclusivo para ti</p>
+                                                </div>
+                                            </div>
+                                            <div className="bg-white rounded-lg px-2.5 py-1 shadow shrink-0">
+                                                <span className="text-green-600 font-black text-base whitespace-nowrap">20% OFF</span>
+                                            </div>
+                                        </div>
+                                        {/* Prices */}
+                                        <div className="flex flex-wrap items-end gap-x-4 gap-y-1">
+                                            <div>
+                                                <p className="text-xs text-gray-400 mb-0.5">Precio regular</p>
+                                                <span className="text-lg font-semibold text-red-400 line-through decoration-2">${(grandTotal / 0.8).toFixed(2)}</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-green-600 font-semibold mb-0.5">Tu precio</p>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-4xl font-black text-gray-900">${grandTotal.toFixed(2)}</span>
+                                                    <span className="text-sm text-gray-500">USD</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {/* Savings pill */}
+                                        <div className="mt-2 flex items-start gap-1.5 bg-green-50 border border-green-200 rounded-full px-3 py-1 w-fit max-w-full">
+                                            <span className="text-green-600 text-sm shrink-0">✦</span>
+                                            <span className="text-green-700 text-xs font-bold">¡Ahorras ${(grandTotal / 0.8 - grandTotal).toFixed(2)} gracias a que eres estudiante!</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-baseline gap-2 mt-1">
+                                        <span className="text-3xl font-bold text-gray-900">${grandTotal.toFixed(2)}</span>
+                                        <span className="text-xs text-gray-500">USD</span>
+                                    </div>
+                                )}
+                            </>
+                        ) : quotedFiles.length > 0 ? (
+                            <>
+                                <p className="text-xs text-naranja mt-0.5">En progreso — {quotedFiles.length} de {files.length} pieza(s) cotizadas</p>
                                 <div className="flex items-baseline gap-2 mt-1">
-                                    <span className="text-3xl font-bold text-gray-900">${grandTotal.toFixed(2)}</span>
-                                    <span className="text-xs text-gray-500">USD</span>
+                                    <span className="text-xl font-bold text-gray-700">${partialTotal.toFixed(2)}</span>
+                                    <span className="text-xs text-gray-400">parcial (+ {pendingFiles.length} pendiente{pendingFiles.length !== 1 ? 's' : ''})</span>
                                 </div>
                             </>
                         ) : (
                             <p className="text-xs text-gray-400 mt-0.5">
-                                {hasPendingFiles
-                                    ? `${files.length} archivo${files.length !== 1 ? 's' : ''} pendiente${files.length !== 1 ? 's' : ''} de cotizar por el taller`
-                                    : 'Disponible cuando el taller finalice la revisión'
-                                }
+                                El taller está analizando tus archivos. Te notificaremos cuando esté listo.
                             </p>
                         )}
                     </div>
@@ -260,10 +325,12 @@ export default function StudentProjectFiles({ jobId, clientId, initialFiles, est
         );
     }
 
+
     // ─── EDIT VIEW ───────────────────────────────────────────────────────────────
     return (
         <div className="space-y-6 mt-4 border-t pt-4 border-gray-100">
-            {/* Crédito Fiscal Banner */}
+            {/* Crédito Fiscal Banner — only for non-verified students */}
+            {!isActiveStudent && (
             <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <Receipt className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
                 <div className="flex-1">
@@ -283,6 +350,7 @@ export default function StudentProjectFiles({ jobId, clientId, initialFiles, est
                     {cfSaving ? 'Guardando...' : cfEnabled ? 'Sí, necesito CF' : 'No requiero CF'}
                 </button>
             </div>
+            )}
 
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">

@@ -30,6 +30,13 @@ interface StudentFile {
     material?: string;
     quantity?: number;
     size?: number;
+    // Set by admin after quoting
+    quoted?: boolean;
+    pieza_id?: string;
+    quoted_name?: string;
+    quoted_price_unit?: number;
+    quoted_total?: number;
+    quoted_qty?: number;
 }
 
 interface StudentFileQuoteRowProps {
@@ -47,7 +54,7 @@ export default function StudentFileQuoteRow({ file, index, jobId, onPieceAdded }
     const [filaments, setFilaments] = useState<InventarioFilamento[]>([]);
     const [openFilamentCombo, setOpenFilamentCombo] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [saved, setSaved] = useState(false);
+    const [saved, setSaved] = useState(!!file.quoted);
 
     // Form state
     const [nombre, setNombre] = useState(file.name || file.filename.replace(/\.(stl|3mf)$/i, ''));
@@ -150,14 +157,26 @@ export default function StudentFileQuoteRow({ file, index, jobId, onPieceAdded }
             setSaved(true);
             setExpanded(false);
 
-            // Remove this file from gestion_trabajos.files so it no longer shows in "Archivos del Estudiante"
+            // Mark this file as quoted with embedded price — do NOT delete it (student dashboard still counts it)
             const { data: jobData } = await supabase
                 .from('gestion_trabajos')
                 .select('files')
                 .eq('id', jobId)
                 .single();
             if (jobData?.files && Array.isArray(jobData.files)) {
-                const updatedFiles = jobData.files.filter((_: any, i: number) => i !== index);
+                const updatedFiles = jobData.files.map((f: any, i: number) =>
+                    i === index
+                        ? {
+                            ...f,
+                            quoted: true,
+                            pieza_id: pieceData.id,
+                            quoted_name: nombre,
+                            quoted_price_unit: precioFinalUnit,
+                            quoted_total: precioFinalUnit * cantidad + totalModelingCost,
+                            quoted_qty: cantidad,
+                        }
+                        : f
+                );
                 await supabase
                     .from('gestion_trabajos')
                     .update({ files: updatedFiles })
