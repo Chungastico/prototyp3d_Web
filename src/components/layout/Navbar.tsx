@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import { useAuth } from '@/context/AuthContext';
 import { createPortal } from 'react-dom';
 
@@ -189,11 +189,11 @@ export default function Navbar({ visible }: NavbarProps) {
                         </>
                     ) : (
                         <>
-                            <Link href="/login">
+                            <SignInButton mode="modal">
                                 <button className="bg-naranja text-azul-oscuro font-extrabold py-2 px-5 rounded-full hover:bg-opacity-80 transition whitespace-nowrap">
                                     Iniciar sesión
                                 </button>
-                            </Link>
+                            </SignInButton>
                         </>
                     )}
                 </div>
@@ -317,16 +317,16 @@ export default function Navbar({ visible }: NavbarProps) {
                                                 </>
                                             ) : (
                                                 <div className="flex flex-col gap-3">
-                                                    <Link href="/login" onClick={() => setMenuOpen(false)} className="w-full">
+                                                    <SignInButton mode="modal">
                                                         <button className="bg-naranja text-azul-oscuro font-extrabold py-3 px-5 rounded-full hover:bg-opacity-80 transition w-full">
                                                             Iniciar sesión
                                                         </button>
-                                                    </Link>
-                                                    <Link href="/login" onClick={() => setMenuOpen(false)} className="w-full">
+                                                    </SignInButton>
+                                                    <SignUpButton mode="modal">
                                                         <button className="border border-naranja text-naranja font-extrabold py-3 px-5 rounded-full hover:bg-naranja hover:text-azul-oscuro transition w-full">
                                                             Registrarse
                                                         </button>
-                                                    </Link>
+                                                    </SignUpButton>
                                                 </div>
                                             )}
                                         </div>

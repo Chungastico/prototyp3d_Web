@@ -8,6 +8,7 @@ import { ArrowLeft, Clock, Calendar, CheckCircle, Truck, Package, DollarSign, Fi
 import { PieceForm } from './PieceForm';
 import { ExtrasSelector } from './ExtrasSelector';
 import { CreateJobModal } from './CreateJobModal';
+import StudentFileQuoteRow from './StudentFileQuoteRow';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -251,6 +252,11 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                             )}
                         </h1>
                         <p className="text-gray-500 text-sm">{(job as any).cliente?.nombre_cliente}</p>
+                        {isCreditoFiscal && (
+                            <span className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-full text-xs font-bold">
+                                🧾 Requiere Crédito Fiscal (+13% IVA)
+                            </span>
+                        )}
                     </div>
                 </div>
                 
@@ -388,11 +394,35 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
-                {/* Main Content: Pieces & Extras */}
+                {/* Main Content: Student Files + Pieces */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* ... (Pieces and Extras sections remain unchanged) ... */}
-                    {/* Pieces Section */}
-                    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+
+                {/* Student Uploaded Files Reference */}
+                {Array.isArray((job as any).files) && (job as any).files.length > 0 && (
+                    <div className="bg-white rounded-xl border border-blue-100 overflow-hidden">
+                        <div className="p-4 border-b border-blue-100 flex justify-between items-center bg-blue-50/50">
+                            <h3 className="font-semibold text-blue-900 flex items-center gap-2 text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                Archivos del Estudiante ({(job as any).files.length})
+                            </h3>
+                            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full font-medium">Click en Cotizar para agregar pieza</span>
+                        </div>
+                        <div className="p-3 space-y-2">
+                            {((job as any).files as any[]).map((file: any, idx: number) => (
+                                <StudentFileQuoteRow
+                                    key={idx}
+                                    file={file}
+                                    index={idx}
+                                    jobId={jobId}
+                                    onPieceAdded={fetchData}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Pieces Section */}
+                <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                                 <Package className="h-4 w-4" /> Piezas
@@ -603,7 +633,34 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                         </div>
 
                         <div className="space-y-2 mt-4">
-                            {job.files && (job.files as any).url && (
+                            {job.files && Array.isArray(job.files) ? (
+                                job.files.map((file: any, index: number) => (
+                                    <div key={index} className="flex flex-col gap-1 p-3 rounded bg-gray-50 border border-gray-100">
+                                        <a 
+                                            href={file.url} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
+                                        >
+                                            <FileBox className="h-4 w-4 text-blue-500" />
+                                            <span className="font-medium text-sm flex-1">{file.name || 'Archivo 3D'} <span className="text-xs text-gray-400 font-normal">({file.filename})</span></span>
+                                            <ExternalLink className="h-3 w-3" />
+                                        </a>
+                                        {file.material && (
+                                            <div className="mt-1">
+                                                <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-md border border-indigo-100 inline-block">
+                                                    Material: {file.material}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {file.comment && (
+                                            <div className="mt-1 text-xs text-gray-500 italic border-l-2 border-naranja pl-2 break-words whitespace-pre-wrap">
+                                                "{file.comment}"
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            ) : job.files && (job.files as any).url ? (
                                 <a 
                                     href={(job.files as any).url} 
                                     target="_blank" 
@@ -614,7 +671,7 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                     <span className="truncate flex-1">{(job.files as any).name || 'Archivo 3D'}</span>
                                     <ExternalLink className="h-3 w-3" />
                                 </a>
-                            )}
+                            ) : null}
                             
                             {job.fusion_project_url && (
                                 <a 

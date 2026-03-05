@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import gsap from 'gsap';
-import Flip from 'gsap/Flip';
+import { Flip } from 'gsap/all';
 
 gsap.registerPlugin(Flip);
 

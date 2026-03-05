@@ -25,13 +25,17 @@ export function useUserRole() {
           .eq('id', user.id)
           .single();
         
+        // Siempre sincronizamos al usuario en segundo plano para asegurar que
+        // su estatus de estudiante y su email estén actualizados en Supabase
+        fetch('/api/sync-user', { method: 'POST' }).catch(e => console.error("Background sync error:", e));
+
         if (error && error.code !== 'PGRST116') {
            console.error('Error fetching role:', error);
            setRole(null); 
         } else if (data) {
            setRole(data.role);
         } else {
-            // Usuario no existe en Supabase -> Llamar a API Sync
+            // Usuario no existe en Supabase -> reintentar fetch después de sync manual
             await fetch('/api/sync-user', { method: 'POST' });
             
             // Reintentar fetch después de sync

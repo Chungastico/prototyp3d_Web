@@ -93,9 +93,8 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
     // Total Production Cost (Unit) = Mat + PrintTime + AmortizedModeling
     const costoTotalUnit = costoFilamento + costoImpresion + amortizedModelingCost;
     
-    // Suggested Pricing (just for printing part)
-    const suggestedMin = totalPrintingHours * 1.0; 
-    const suggestedMax = totalPrintingHours * 2.0;
+    const suggestedMin = totalPrintingHours * 1.0 + costoFilamento; 
+    const suggestedMax = totalPrintingHours * 2.0 + costoFilamento;
 
     // Final Price to Customer (Unit) = Base Price (for print) + Amortized Modeling Cost
     const precioFinalUnit = basePrice + amortizedModelingCost;

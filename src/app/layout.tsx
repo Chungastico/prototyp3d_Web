@@ -45,9 +45,11 @@ export const metadata: Metadata = {
     },
 };
 
+import { esES } from '@clerk/localizations';
+
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
-        <ClerkProvider>
+        <ClerkProvider localization={esES}>
             <html lang="es" suppressHydrationWarning>
                 <head>
                     <StructuredData />

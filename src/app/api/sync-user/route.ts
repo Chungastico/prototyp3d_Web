@@ -16,6 +16,24 @@ export async function POST() {
             return NextResponse.json({ error: 'No email found' }, { status: 400 });
         }
 
+        // Check Student Discount Eligibility (any .edu.sv domain)
+        const domain = email.split('@')[1]?.toLowerCase() || '';
+        
+        let studentStatusObj = {};
+        
+        if (domain.endsWith('.edu.sv')) {
+            const now = new Date();
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 365); // 365 days from now
+            
+            studentStatusObj = {
+                student_status: 'active',
+                student_domain: domain,
+                student_verified_at: now.toISOString(),
+                student_expires_at: expiresAt.toISOString()
+            };
+        }
+
         // Upsert user in Supabase public.profiles
         // Usamos upsert para crear si no existe, o no hacer nada si ya está (idempotente)
         const { error } = await supabaseAdmin
@@ -23,8 +41,10 @@ export async function POST() {
             .upsert({
                 id: user.id,
                 email: email,
+                ...studentStatusObj
                 // No sobreescribimos 'role' si ya existe para no perder admins
-            }, { onConflict: 'id', ignoreDuplicates: true });
+            }, { onConflict: 'id', ignoreDuplicates: false }); 
+            // ignoreDupiicates debe ser false para que actualice la fecha/estado si vuelve a loguearse
 
         if (error) {
             console.error('Supabase Sync Error:', error);
