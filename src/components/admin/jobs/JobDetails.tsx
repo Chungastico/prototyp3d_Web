@@ -46,63 +46,61 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
     const fetchData = useCallback(async () => {
         setLoading(true);
         
-        // 1. Fetch Job with client name
-        const { data: jobData } = await supabase
-            .from('gestion_trabajos')
-            .select(`*, cliente:clientes(*)`)
-            .eq('id', jobId)
-            .single();
-            
-        // 2. Fetch Pieces
-        const { data: piecesData } = await supabase
-            .from('piezas_trabajo')
-            .select('*')
-            .eq('trabajo_id', jobId);
+        // 1. Fetch Job, Pieces, and Job-Level Extras concurrently
+        // OPTIMIZATION: Fetched concurrently using Promise.all to avoid network waterfall.
+        // This reduces 6 sequential DB queries down to 3 parallel batches, significantly speeding up load time.
+        const [
+            { data: jobData },
+            { data: piecesData },
+            { data: extrasData }
+        ] = await Promise.all([
+            supabase
+                .from('gestion_trabajos')
+                .select(`*, cliente:clientes(*)`)
+                .eq('id', jobId)
+                .single(),
+            supabase
+                .from('piezas_trabajo')
+                .select('*')
+                .eq('trabajo_id', jobId),
+            supabase
+                .from('extras_aplicados')
+                .select('*')
+                .eq('trabajo_id', jobId)
+        ]);
 
-        // 2b. Fetch Filament Info if pieces exist
+        let allExtras = extrasData || [];
+
+        // 2. Fetch Filament Info and Piece-Level Extras concurrently if pieces exist
         if (piecesData && piecesData.length > 0) {
             const filamentIds = Array.from(new Set(piecesData.map(p => p.filamento_id).filter(Boolean)));
-            if (filamentIds.length > 0) {
-                const { data: filaments } = await supabase
-                    .from('inventario_filamento')
-                    .select('id, color_tipo_filamento, material')
-                    .in('id', filamentIds);
-                
+            const pieceIds = piecesData.map(p => p.id);
+
+            const [
+                { data: filaments },
+                { data: pieceExtras }
+            ] = await Promise.all([
+                filamentIds.length > 0
+                    ? supabase.from('inventario_filamento').select('id, color_tipo_filamento, material').in('id', filamentIds)
+                    : Promise.resolve({ data: null }),
+                supabase.from('extras_aplicados').select('*').in('pieza_id', pieceIds)
+            ]);
+
+            if (filaments) {
                 const fMap: Record<string, string> = {};
                 const mMap: Record<string, string> = {};
-                if (filaments) {
-                    filaments.forEach(f => {
-                         fMap[f.id] = f.color_tipo_filamento;
-                         mMap[f.id] = f.material || '-';
-                    });
-                }
+                filaments.forEach(f => {
+                     fMap[f.id] = f.color_tipo_filamento;
+                     mMap[f.id] = f.material || '-';
+                });
                 setFilamentNames(fMap);
                 setFilamentMaterials(mMap);
             }
-        }
 
-        // 3. Fetch Extras (Job Level)
-        const { data: extrasData } = await supabase
-            .from('extras_aplicados')
-            .select('*')
-            .eq('trabajo_id', jobId);
-            
-        // 3b. Fetch Extras (Piece Level)
-        // Note: Supabase doesn't easily do "OR" across tables joined differently in one query simply. 
-        // We'll just fetch piece-extras separately if we have pieces.
-        let allExtras = extrasData || [];
-        
-        if (piecesData && piecesData.length > 0) {
-            const pieceIds = piecesData.map(p => p.id);
-            const { data: pieceExtras } = await supabase
-                .from('extras_aplicados')
-                .select('*')
-                .in('pieza_id', pieceIds);
-            
             if (pieceExtras) allExtras = [...allExtras, ...pieceExtras];
         }
 
-        // 4. Fetch Extra Names
+        // 3. Fetch Extra Names
         if (allExtras.length > 0) {
             const extraIds = Array.from(new Set(allExtras.map(e => e.extra_id)));
             const { data: names } = await supabase
