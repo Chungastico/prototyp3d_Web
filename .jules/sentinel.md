@@ -1,0 +1,4 @@
+## 2025-05-18 - [Insecure Random Number Generation for IDs and Files]
+**Vulnerability:** The project used `Math.random()` to generate unique file names for Supabase storage uploads and string IDs for new file attachment objects in the dashboard state.
+**Learning:** `Math.random()` is not cryptographically secure and may result in predictable sequences or collisions, particularly for file names or IDs. In Next.js client and server environments, standard web crypto functions are accessible and should be preferred.
+**Prevention:** Always use `crypto.randomUUID()` when generating unique identifiers, file names, or tokens instead of relying on `Math.random()`-based string manipulation.

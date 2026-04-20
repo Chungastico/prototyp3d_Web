@@ -41,7 +41,7 @@ export default function StudentProjectFiles({ jobId, clientId, initialFiles, est
 
     const [files, setFiles] = useState<any[]>(Array.isArray(initialFiles) ? initialFiles.map(f => ({
         ...f,
-        id: Math.random().toString(36).substring(7),
+        id: crypto.randomUUID(),
         isExisting: true,
         file: null,
         expanded: false,
@@ -76,7 +76,7 @@ export default function StudentProjectFiles({ jobId, clientId, initialFiles, est
     const addFiles = (newFiles: File[]) => {
         const stlFiles = newFiles.filter(f => f.name.toLowerCase().endsWith('.stl') || f.name.toLowerCase().endsWith('.3mf'));
         const newEntries = stlFiles.map(file => ({
-            id: Math.random().toString(36).substring(7),
+            id: crypto.randomUUID(),
             file,
             filename: file.name,
             name: file.name.replace(/\.(stl|3mf)$/i, ''),

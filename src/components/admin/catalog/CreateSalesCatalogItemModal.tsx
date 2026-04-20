@@ -71,7 +71,7 @@ export function CreateSalesCatalogItemModal({ open, onOpenChange, onItemSaved, i
 
             const file = e.target.files[0];
             const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random()}.${fileExt}`;
+            const fileName = `${crypto.randomUUID()}.${fileExt}`;
             const filePath = `sales/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
