@@ -48,7 +48,7 @@ export default function NewProjectForm({ clientId }: NewProjectFormProps) {
     const addFiles = (newFiles: File[]) => {
         const stlFiles = newFiles.filter(f => f.name.toLowerCase().endsWith('.stl') || f.name.toLowerCase().endsWith('.3mf'));
         const newEntries = stlFiles.map(file => ({
-            id: Math.random().toString(36).substring(7),
+            id: crypto.randomUUID(),
             file,
             name: file.name.replace(/\.(stl|3mf)$/i, ''), // Default to filename without extension
             comment: '',
