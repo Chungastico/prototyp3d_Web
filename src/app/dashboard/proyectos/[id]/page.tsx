@@ -39,15 +39,19 @@ export default async function DetalleProyectoPage({ params }: { params: Promise<
     }
 
     // Pieces & extras
-    const { data: pieces } = await supabaseAdmin
-        .from('piezas_trabajo')
-        .select('*')
-        .eq('trabajo_id', job.id);
-        
-    const { data: extras } = await supabaseAdmin
-        .from('extras_aplicados')
-        .select('*')
-        .eq('trabajo_id', job.id);
+    const [
+        { data: pieces },
+        { data: extras }
+    ] = await Promise.all([
+        supabaseAdmin
+            .from('piezas_trabajo')
+            .select('*')
+            .eq('trabajo_id', job.id),
+        supabaseAdmin
+            .from('extras_aplicados')
+            .select('*')
+            .eq('trabajo_id', job.id)
+    ]);
 
     // True when admin has quoted every file
     const allFilesQuoted = Array.isArray(job.files) && job.files.length > 0 && job.files.every((f: any) => f.quoted);
@@ -56,31 +60,34 @@ export default async function DetalleProyectoPage({ params }: { params: Promise<
     const isActiveStudent = true;
     const filamentNames: Record<string, string> = {};
     const filamentMaterials: Record<string, string> = {};
-    if (pieces && pieces.length > 0) {
-        const filamentIds = Array.from(new Set(pieces.map(p => p.filamento_id).filter(Boolean)));
-        if (filamentIds.length > 0) {
-            const { data: filaments } = await supabaseAdmin
-                .from('inventario_filamento')
-                .select('id, color_tipo_filamento, material')
-                .in('id', filamentIds);
-            if (filaments) {
-                filaments.forEach(f => {
-                    filamentNames[f.id] = f.color_tipo_filamento;
-                    filamentMaterials[f.id] = f.material || '-';
-                });
-            }
-        }
+    const extraNames: Record<string, string> = {};
+
+    const filamentIds = pieces && pieces.length > 0
+        ? Array.from(new Set(pieces.map(p => p.filamento_id).filter(Boolean)))
+        : [];
+
+    const extraIds = extras && extras.length > 0
+        ? Array.from(new Set(extras.map(e => e.extra_id)))
+        : [];
+
+    const [filamentsRes, namesRes] = await Promise.all([
+        filamentIds.length > 0
+            ? supabaseAdmin.from('inventario_filamento').select('id, color_tipo_filamento, material').in('id', filamentIds)
+            : Promise.resolve({ data: null }),
+        extraIds.length > 0
+            ? supabaseAdmin.from('catalogo_extras').select('id, nombre').in('id', extraIds)
+            : Promise.resolve({ data: null })
+    ]);
+
+    if (filamentsRes.data) {
+        filamentsRes.data.forEach(f => {
+            filamentNames[f.id] = f.color_tipo_filamento;
+            filamentMaterials[f.id] = f.material || '-';
+        });
     }
 
-    // Extra names
-    const extraNames: Record<string, string> = {};
-    if (extras && extras.length > 0) {
-        const extraIds = Array.from(new Set(extras.map(e => e.extra_id)));
-        const { data: names } = await supabaseAdmin
-            .from('catalogo_extras')
-            .select('id, nombre')
-            .in('id', extraIds);
-        if (names) names.forEach(n => extraNames[n.id] = n.nombre);
+    if (namesRes.data) {
+        namesRes.data.forEach(n => extraNames[n.id] = n.nombre);
     }
 
     // Totals
