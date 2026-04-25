@@ -37,51 +37,55 @@ export function DashboardOverview() {
         const fetchDashboardData = async () => {
             setLoading(true);
 
-            // 1. Jobs: Active count & Next Deadline (Global)
-            const { data: jobs } = await supabase
-                .from('gestion_trabajos')
-                .select('fecha_entrega, estado')
-                .in('estado', ['aprobado', 'en_produccion'])
-                .order('fecha_entrega', { ascending: true });
+            const start = startOfMonth(selectedDate).toISOString();
+            const end = endOfMonth(selectedDate).toISOString();
+
+            // Perform independent queries concurrently to prevent network waterfalls
+            const [
+                { data: jobs },
+                { data: tasks },
+                { count: inventoryCount },
+                { data: monthlyJobs }
+            ] = await Promise.all([
+                // 1. Jobs: Active count & Next Deadline (Global)
+                supabase
+                    .from('gestion_trabajos')
+                    .select('fecha_entrega, estado')
+                    .in('estado', ['aprobado', 'en_produccion'])
+                    .order('fecha_entrega', { ascending: true }),
+                // 2. Projects: Urgent Tasks (Global)
+                supabase
+                    .from('proyectos_internos_prototyp3d')
+                    .select('id, proyecto, fecha_objetivo')
+                    .not('fecha_objetivo', 'is', null)
+                    .neq('estado', 'Completado')
+                    .order('fecha_objetivo', { ascending: true })
+                    .limit(3),
+                // 3. Inventory: Low Stock (Global)
+                supabase
+                    .from('inventario_filamento')
+                    .select('*', { count: 'exact', head: true }),
+                // 4. Finances: Revenue & Profit (Filtered by Month)
+                supabase
+                    .from('gestion_trabajos')
+                    .select(`
+                        id,
+                        piezas_trabajo (total_venta, total_costo),
+                        extras_aplicados (subtotal, es_venta, es_costo)
+                    `)
+                    .gte('fecha_entrega', start)
+                    .lte('fecha_entrega', end)
+                    .neq('estado', 'cancelado')
+            ]);
 
             const activeJobsCount = jobs?.length || 0;
             const nextDeadline = jobs && jobs.length > 0 ? jobs[0].fecha_entrega : null;
-
-            // 2. Projects: Urgent Tasks (Global)
-            const { data: tasks } = await supabase
-                .from('proyectos_internos_prototyp3d')
-                .select('id, proyecto, fecha_objetivo')
-                .not('fecha_objetivo', 'is', null)
-                .neq('estado', 'Completado')
-                .order('fecha_objetivo', { ascending: true })
-                .limit(3);
 
             const urgentTasks = tasks?.map(t => ({
                 id: t.id,
                 title: t.proyecto,
                 due: t.fecha_objetivo
             })) || [];
-
-            // 3. Inventory: Low Stock (Global)
-            const { count: inventoryCount } = await supabase
-                .from('inventario_filamento')
-                .select('*', { count: 'exact', head: true });
-
-            // 4. Finances: Revenue & Profit (Filtered by Month)
-            const start = startOfMonth(selectedDate).toISOString();
-            const end = endOfMonth(selectedDate).toISOString();
-
-            // Filter jobs by 'fecha_entrega' within the month
-            const { data: monthlyJobs } = await supabase
-                .from('gestion_trabajos')
-                .select(`
-                    id,
-                    piezas_trabajo (total_venta, total_costo),
-                    extras_aplicados (subtotal, es_venta, es_costo)
-                `)
-                .gte('fecha_entrega', start)
-                .lte('fecha_entrega', end)
-                .neq('estado', 'cancelado');
 
             let totalRevenue = 0;
             let totalCost = 0;
