@@ -1,0 +1,4 @@
+## 2024-04-26 - Prevent SSRF in Server Actions fetching Images
+**Vulnerability:** The application was passing unvalidated image URLs directly to `fetch()` in Server Actions (`src/app/actions/tag-image.ts`), creating a critical Server-Side Request Forgery (SSRF) risk where an attacker could force the server to make requests to internal services or untrusted endpoints.
+**Learning:** Next.js Server Actions execute in a trusted server environment. When they take URL parameters from untrusted client input and use them for data fetching or manipulation (like passing an image URL to Gemini), those URLs must be strictly validated against an allowlist of trusted domains.
+**Prevention:** Implement strict URL validation functions that parse the URL (using `new URL()`), ensure it uses the `https:` protocol, and verify that the hostname matches trusted domains (e.g., `process.env.NEXT_PUBLIC_SUPABASE_URL`). Apply this validation before any `fetch` calls.

@@ -22,6 +22,24 @@ function isRetryable429(error: unknown): boolean {
     );
 }
 
+function validateImageUrl(urlStr: string): void {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl) {
+        throw new Error('Security Error: Missing trusted Supabase URL configuration');
+    }
+
+    try {
+        const parsedUrl = new URL(urlStr);
+        const trustedHost = new URL(supabaseUrl).hostname;
+
+        if (parsedUrl.hostname !== trustedHost || parsedUrl.protocol !== 'https:') {
+            throw new Error('Untrusted URL');
+        }
+    } catch {
+        throw new Error('Security Error: Invalid or untrusted image URL');
+    }
+}
+
 function ensureGlobalMap<T>(key: string): Map<string, T> {
     const g = globalThis as any;
     if (!g[key]) {
@@ -47,6 +65,13 @@ const tagsCache = ensureGlobalMap<string[]>('__tagsCache');
 const tagsInFlight = ensureGlobalMap<Promise<string[]>>('__tagsInFlight');
 
 export async function generateImageTags(imageUrl: string): Promise<string[]> {
+    try {
+        validateImageUrl(imageUrl);
+    } catch (e) {
+        console.error(e);
+        return [];
+    }
+
     let inflightKey = imageUrl;
 
     try {
@@ -140,6 +165,13 @@ export async function generateProductDescription(params: {
     tags?: string[];
 }): Promise<string> {
     const { imageUrl, title, category, tags } = params;
+
+    try {
+        validateImageUrl(imageUrl);
+    } catch (e) {
+        console.error(e);
+        return '';
+    }
 
     // Key incluye contexto para que el cache sea correcto
     const cacheKey = JSON.stringify({
