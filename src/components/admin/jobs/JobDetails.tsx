@@ -46,63 +46,75 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
     const fetchData = useCallback(async () => {
         setLoading(true);
         
-        // 1. Fetch Job with client name
-        const { data: jobData } = await supabase
-            .from('gestion_trabajos')
-            .select(`*, cliente:clientes(*)`)
-            .eq('id', jobId)
-            .single();
-            
-        // 2. Fetch Pieces
-        const { data: piecesData } = await supabase
-            .from('piezas_trabajo')
-            .select('*')
-            .eq('trabajo_id', jobId);
+        // ⚡ Bolt Optimization: Batch independent base queries for jobs, pieces, and job-level extras
+        // 1. & 2. & 3. Fetch Job, Pieces, and Job-Level Extras concurrently
+        const [
+            { data: jobData },
+            { data: piecesData },
+            { data: extrasData }
+        ] = await Promise.all([
+            supabase
+                .from('gestion_trabajos')
+                .select(`*, cliente:clientes(*)`)
+                .eq('id', jobId)
+                .single(),
+            supabase
+                .from('piezas_trabajo')
+                .select('*')
+                .eq('trabajo_id', jobId),
+            supabase
+                .from('extras_aplicados')
+                .select('*')
+                .eq('trabajo_id', jobId)
+        ]);
+
+        // After primary data is fetched, batch any required dependent secondary queries
+        const secondaryPromises = [];
 
         // 2b. Fetch Filament Info if pieces exist
         if (piecesData && piecesData.length > 0) {
             const filamentIds = Array.from(new Set(piecesData.map(p => p.filamento_id).filter(Boolean)));
             if (filamentIds.length > 0) {
-                const { data: filaments } = await supabase
-                    .from('inventario_filamento')
-                    .select('id, color_tipo_filamento, material')
-                    .in('id', filamentIds);
-                
-                const fMap: Record<string, string> = {};
-                const mMap: Record<string, string> = {};
-                if (filaments) {
-                    filaments.forEach(f => {
-                         fMap[f.id] = f.color_tipo_filamento;
-                         mMap[f.id] = f.material || '-';
-                    });
-                }
-                setFilamentNames(fMap);
-                setFilamentMaterials(mMap);
+                secondaryPromises.push(
+                    supabase
+                        .from('inventario_filamento')
+                        .select('id, color_tipo_filamento, material')
+                        .in('id', filamentIds)
+                        .then(({ data: filaments }) => {
+                            const fMap: Record<string, string> = {};
+                            const mMap: Record<string, string> = {};
+                            if (filaments) {
+                                filaments.forEach(f => {
+                                     fMap[f.id] = f.color_tipo_filamento;
+                                     mMap[f.id] = f.material || '-';
+                                });
+                            }
+                            setFilamentNames(fMap);
+                            setFilamentMaterials(mMap);
+                        })
+                );
             }
         }
-
-        // 3. Fetch Extras (Job Level)
-        const { data: extrasData } = await supabase
-            .from('extras_aplicados')
-            .select('*')
-            .eq('trabajo_id', jobId);
             
         // 3b. Fetch Extras (Piece Level)
-        // Note: Supabase doesn't easily do "OR" across tables joined differently in one query simply. 
-        // We'll just fetch piece-extras separately if we have pieces.
         let allExtras = extrasData || [];
-        
         if (piecesData && piecesData.length > 0) {
             const pieceIds = piecesData.map(p => p.id);
-            const { data: pieceExtras } = await supabase
-                .from('extras_aplicados')
-                .select('*')
-                .in('pieza_id', pieceIds);
-            
-            if (pieceExtras) allExtras = [...allExtras, ...pieceExtras];
+            secondaryPromises.push(
+                supabase
+                    .from('extras_aplicados')
+                    .select('*')
+                    .in('pieza_id', pieceIds)
+                    .then(({ data: pieceExtras }) => {
+                        if (pieceExtras) allExtras = [...allExtras, ...pieceExtras];
+                    })
+            );
         }
 
-        // 4. Fetch Extra Names
+        // Await the dependent secondary queries (filaments, piece-level extras)
+        await Promise.all(secondaryPromises);
+
+        // 4. Fetch Extra Names (Requires allExtras to be fully resolved)
         if (allExtras.length > 0) {
             const extraIds = Array.from(new Set(allExtras.map(e => e.extra_id)));
             const { data: names } = await supabase
