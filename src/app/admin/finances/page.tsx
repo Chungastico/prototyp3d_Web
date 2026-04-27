@@ -1,8 +1,7 @@
-'use client';
-
 import React from 'react';
 import { FinancialOverview } from '@/components/admin/finances/FinancialOverview';
 import { TransactionsPanel } from '@/components/admin/finances/TransactionsPanel';
+import { DetailedProjectAnalysis } from '@/components/admin/finances/DetailedProjectAnalysis';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function FinancesPage() {
@@ -17,6 +16,7 @@ export default function FinancesPage() {
                 <TabsList className="bg-white border">
                     <TabsTrigger value="overview">Resumen General</TabsTrigger>
                     <TabsTrigger value="transactions">Transacciones Manuales</TabsTrigger>
+                    <TabsTrigger value="detailed">Análisis Detallado</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="overview" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -25,6 +25,10 @@ export default function FinancesPage() {
                 
                 <TabsContent value="transactions" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     <TransactionsPanel />
+                </TabsContent>
+
+                <TabsContent value="detailed" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <DetailedProjectAnalysis />
                 </TabsContent>
             </Tabs>
         </div>

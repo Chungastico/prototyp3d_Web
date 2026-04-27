@@ -83,6 +83,27 @@ export default async function DetalleProyectoPage({ params }: { params: Promise<
         if (names) names.forEach(n => extraNames[n.id] = n.nombre);
     }
 
+    // Distribute Empaquetado extra across files in the UI to match the PDF
+    const isEmpaquetado = (concepto: string | undefined | null) => concepto && concepto.toLowerCase().trim() === 'empaquetado';
+    const totalEmpaquetado = (extras || []).filter(e => isEmpaquetado(e.concepto)).reduce((sum, e) => sum + (e.es_venta ? e.subtotal : 0), 0);
+    if (Array.isArray(job.files) && totalEmpaquetado > 0) {
+        const totalQuotedQty = job.files.reduce((sum: number, f: any) => sum + (f.quoted ? (f.quoted_qty || f.quantity || 1) : 0), 0);
+        if (totalQuotedQty > 0) {
+            const extraPerUnit = totalEmpaquetado / totalQuotedQty;
+            job.files = job.files.map((f: any) => {
+                if (f.quoted) {
+                    const qty = f.quoted_qty || f.quantity || 1;
+                    return {
+                        ...f,
+                        quoted_price_unit: (f.quoted_price_unit || 0) + extraPerUnit,
+                        quoted_total: (f.quoted_total || 0) + (extraPerUnit * qty)
+                    };
+                }
+                return f;
+            });
+        }
+    }
+
     // Totals
     const totalPiecesSale = (pieces || []).reduce((sum, p) => sum + p.total_venta, 0);
     const totalExtrasSale = (extras || []).reduce((sum, e) => sum + (e.es_venta ? e.subtotal : 0), 0);

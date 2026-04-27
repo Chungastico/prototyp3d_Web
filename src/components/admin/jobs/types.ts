@@ -75,6 +75,12 @@ export interface PiezaTrabajo {
   total_venta: number;
   total_costo: number; // costo_total_unit * cantidad
   total_ganancia: number;
+
+  // Objeto/Extra Físico asociado (Ej. Argollas)
+  objeto_id?: string | null;
+  cantidad_objeto_por_pieza?: number | null;
+  costo_objeto_snapshot?: number | null;
+  precio_venta_objeto_snapshot?: number | null;
 }
 
 export interface ConsumoFilamento {
@@ -96,7 +102,8 @@ export interface CatalogoExtra {
 
 export interface ExtraAplicado {
   id: string;
-  extra_id: string; // FK to catalogo_extras.id
+  extra_id?: string | null; // Optional now
+  concepto?: string | null; // Added custom concept
   trabajo_id: string | null;
   pieza_id: string | null;
   cantidad: number;
@@ -152,5 +159,18 @@ export interface InventarioFilamento {
     stock_gramos_disponibles?: number | null;
     
     // --- Joined Fields ---
+    proveedor?: Proveedor | null;
+}
+
+export interface InventarioObjeto {
+    id: string;
+    nombre: string;
+    descripcion?: string | null;
+    proveedor_id?: string | null;
+    stock_disponible: number;
+    costo_unitario: number;
+    precio_venta: number;
+    created_at?: string;
+    
     proveedor?: Proveedor | null;
 }

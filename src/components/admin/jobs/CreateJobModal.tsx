@@ -216,6 +216,28 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated, jobToEdit }: 
                     .select(); // Capture returned data
                 data = insertData;
                 error = insertError;
+
+                // --- AUTOMATIC PACKAGING EXTRA LOGIC ---
+                if (!error && data && data.length > 0) {
+                    const newJobId = data[0].id;
+
+                    try {
+                        // Insert the 'Empaquetado' extra directly using the new 'concepto' text column
+                        await supabase.from('extras_aplicados').insert([{
+                            trabajo_id: newJobId,
+                            extra_id: null,
+                            concepto: 'Empaquetado',
+                            cantidad: 1,
+                            precio_unitario_snapshot: 1.00,
+                            subtotal: 1.00,
+                            es_venta: true,
+                            es_costo: true // Costo operativo as per user rules
+                        }]);
+                    } catch (err) {
+                        console.error("Error applying automatic packaging extra:", err);
+                        // Do not throw, we still successfully created the job
+                    }
+                }
             }
 
             if (error) throw error;

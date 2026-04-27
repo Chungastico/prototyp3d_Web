@@ -8,12 +8,14 @@ import { DollarSign, TrendingDown, Activity, Zap, Layers, Box, PiggyBank, Briefc
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, Legend } from 'recharts';
 
 interface FinancialMetrics {
     ventas: number;
     gastosMaterial: number;
     gastosMaquina: number;
     gastosModelado: number;
+    gastosObjetos: number; // Argollas/Extras from transacciones_financieras
     gastosExtras: number; // Extras applied in orders
     gastosManuales: number; // From transacciones_financieras (marketing, etc)
     capitalInvertido: number; // From transacciones_financieras
@@ -35,7 +37,7 @@ const MEL_SHARE_PERCENTAGE = 0.25;
 export function FinancialOverview() {
     const [loading, setLoading] = useState(true);
     const [metrics, setMetrics] = useState<FinancialMetrics>({
-        ventas: 0, gastosMaterial: 0, gastosMaquina: 0, gastosModelado: 0, gastosExtras: 0, gastosManuales: 0,
+        ventas: 0, gastosMaterial: 0, gastosMaquina: 0, gastosModelado: 0, gastosObjetos: 0, gastosExtras: 0, gastosManuales: 0,
         capitalInvertido: 0, gananciaBruta: 0, gananciaOperativa: 0, impuestos: 0, gananciaNeta: 0, saldoTotal: 0,
         melShareTotal: 0, melPaid: 0, melPending: 0, capitalLibre: 0
     });
@@ -82,6 +84,7 @@ export function FinancialOverview() {
             let gastosMaterial = 0;
             let gastosMaquina = 0;
             let gastosModelado = 0;
+            let gastosObjetos = 0;
             let gastosExtras = 0;
             let gastosManuales = 0;
             let capitalInvertido = 0;
@@ -104,6 +107,7 @@ export function FinancialOverview() {
                         material: 0, 
                         maquina: 0, 
                         modelado: 0, 
+                        objetos: 0,
                         extrasCosto: 0, 
                         gastosManuales: 0, 
                         melShare: 0, 
@@ -127,8 +131,9 @@ export function FinancialOverview() {
                 const modCost = ((p.tiempo_modelado_h || 0) * (p.costo_modelado_h_rate || 0)) * qty;
 
                 // Profit per piece for Mel Share
-                // Gross Profit per item = Sale - (Mat + Mach + Mod)
-                const grossProfitItem = sale - (matCost + machCost + modCost);
+                // Gross Profit per item = Sale - (Mat + Mach + Mod + Obj)
+                const objCost = ((p.costo_objeto_snapshot || 0) * (p.cantidad_objeto_por_pieza || 0)) * qty;
+                const grossProfitItem = sale - (matCost + machCost + modCost + objCost);
                 const itemMelShare = grossProfitItem > 0 ? grossProfitItem * MEL_SHARE_PERCENTAGE : 0;
 
                 // Global Accumulators
@@ -160,6 +165,17 @@ export function FinancialOverview() {
                     gastosExtras += (e.subtotal || 0);
                     months[monthKey].extrasCosto += (e.subtotal || 0);
                 }
+
+                // Contribution to Mel Share from Extras (Profit-based)
+                const extraSale = e.es_venta ? (e.subtotal || 0) : 0;
+                const extraCost = e.es_costo ? (e.subtotal || 0) : 0;
+                const extraProfit = extraSale - extraCost;
+                
+                if (extraProfit > 0) {
+                    const extraMelShare = extraProfit * MEL_SHARE_PERCENTAGE;
+                    melShareTotal += extraMelShare;
+                    months[monthKey].melShare += extraMelShare;
+                }
             });
 
             // Process Transactions
@@ -177,6 +193,9 @@ export function FinancialOverview() {
                     if (isMelPayment) {
                         melPaid += (t.monto || 0);
                         months[monthKey].melPaid += (t.monto || 0);
+                    } else if (t.categoria === 'Inventario Objetos') {
+                        gastosObjetos += (t.monto || 0);
+                        months[monthKey].objetos += (t.monto || 0);
                     } else {
                         // Regular operational expense
                         gastosManuales += (t.monto || 0);
@@ -190,7 +209,7 @@ export function FinancialOverview() {
             // Real outflows for Cash Balance: Material, Extras, Manual Ops.
             // *Machine & Modeling are internal 'Savings', so they stay in Cash (SaldoTotal).
             // *Mel Paid is a real outflow.
-            const totalEgresosReales = gastosMaterial + gastosExtras + gastosManuales + melPaid;
+            const totalEgresosReales = gastosMaterial + gastosObjetos + gastosExtras + gastosManuales + melPaid;
             const saldoTotal = totalIngresos - totalEgresosReales;
 
             // Current Month Logic for Debt
@@ -206,7 +225,7 @@ export function FinancialOverview() {
             const capitalLibre = saldoTotal - (gastosMaquina + gastosModelado) - melPending - currentMonthShare;
 
             setMetrics({
-                ventas, gastosMaterial, gastosMaquina, gastosModelado, gastosExtras, gastosManuales, capitalInvertido,
+                ventas, gastosMaterial, gastosMaquina, gastosModelado, gastosObjetos, gastosExtras, gastosManuales, capitalInvertido,
                 gananciaBruta: ventas - (gastosMaterial + gastosMaquina + gastosModelado), // Global approx
                 gananciaOperativa: 0, impuestos: 0, gananciaNeta: 0, // Not used much in new view
                 saldoTotal,
@@ -231,7 +250,7 @@ export function FinancialOverview() {
     const getMonthStats = () => {
         const data = monthlyData[selectedMonth] || { 
             ventasProyectos: 0, ingresosManuales: 0,
-            material: 0, maquina: 0, modelado: 0, extrasCosto: 0, 
+            material: 0, maquina: 0, modelado: 0, objetos: 0, extrasCosto: 0, 
             gastosManuales: 0, melShare: 0, melPaid: 0 
         };
         
@@ -243,9 +262,10 @@ export function FinancialOverview() {
         const material = data.material ?? 0;
         const maquina = data.maquina ?? 0;
         const modelado = data.modelado ?? 0;
+        const objetos = data.objetos ?? 0;
         const extrasCosto = data.extrasCosto ?? data.extras ?? 0;
         
-        const costosProduccion = material + maquina + modelado + extrasCosto;
+        const costosProduccion = material + maquina + modelado + objetos + extrasCosto;
         const gananciaBruta = totalIngresos - costosProduccion;
         
         const gastosManuales = data.gastosManuales ?? data.manuales ?? 0;
@@ -264,6 +284,7 @@ export function FinancialOverview() {
             material,
             maquina,
             modelado,
+            objetos,
             extrasCosto,
             costosProduccion,
 
@@ -384,6 +405,50 @@ export function FinancialOverview() {
 
             <hr className="border-gray-200" />
 
+            {/* HISTORICAL TREND SECTION */}
+            <div className="space-y-4">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <Activity className="h-5 w-5 text-gray-500" />
+                        Rendimiento Histórico Global
+                    </h2>
+                    <p className="text-sm text-gray-500">Evolución mes a mes del flujo de toda la empresa</p>
+                </div>
+                <Card className="shadow-sm border-gray-200 p-6">
+                    <div className="h-72 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={[...availableMonths].reverse().map(monthKey => {
+                                const data = monthlyData[monthKey];
+                                return {
+                                    mes: format(parseISO(monthKey + '-01'), 'MMM yy', { locale: es }),
+                                    ingresos: (data.ventasProyectos + data.ingresosManuales) || 0,
+                                    gastos: ((data.material + data.maquina + data.modelado + data.objetos + data.extrasCosto) || 0) + (data.gastosManuales || 0) + (data.melPaid || 0)
+                                };
+                            })}>
+                                <defs>
+                                    <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#4ADE80" stopOpacity={0.8}/>
+                                        <stop offset="95%" stopColor="#4ADE80" stopOpacity={0}/>
+                                    </linearGradient>
+                                    <linearGradient id="colorGastos" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#FB923C" stopOpacity={0.8}/>
+                                        <stop offset="95%" stopColor="#FB923C" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <XAxis dataKey="mes" fontSize={11} tickMargin={10} axisLine={false} tickLine={false} />
+                                <YAxis tickFormatter={(val) => `$${val}`} fontSize={11} axisLine={false} tickLine={false} />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                <Tooltip formatter={(value: any) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)} />
+                                <Area type="monotone" dataKey="ingresos" name="Ingresos Totales" stroke="#22C55E" fillOpacity={1} fill="url(#colorIngresos)" />
+                                <Area type="monotone" dataKey="gastos" name="Gastos Totales" stroke="#F97316" fillOpacity={1} fill="url(#colorGastos)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+            </div>
+
+            <hr className="border-gray-200" />
+
             {/* MONTHLY ANALYSIS SECTION */}
             <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -392,7 +457,7 @@ export function FinancialOverview() {
                             <Calendar className="h-5 w-5 text-gray-500" />
                             Análisis Mensual
                         </h2>
-                        <p className="text-sm text-gray-500">Desglose de rendimiento por periodo</p>
+                        <p className="text-sm text-gray-500">Desglose exhaustivo por periodo</p>
                     </div>
                     
                     <div className="flex items-center gap-4 bg-white p-1 rounded-lg border shadow-sm">
@@ -406,6 +471,87 @@ export function FinancialOverview() {
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                     </div>
+                </div>
+
+                {/* --- CHARTS SECTION --- */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                     
+                     {/* Breakdown Pie Chart (Selected Month) */}
+                     <Card className="col-span-1 shadow-sm border-gray-200 p-6 flex flex-col justify-center">
+                        <h3 className="text-sm font-bold text-gray-700 mb-4">Desglose de Costos y Gastos ({format(parseISO(selectedMonth + '-01'), 'MMM yyyy', { locale: es })})</h3>
+                        <div className="h-64 w-full flex items-center justify-center">
+                            {mStats.costosProduccion + mStats.gastosManuales + mStats.participacionMel > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={[
+                                                { name: 'Material', value: mStats.material, color: '#F59E0B' }, // Amber
+                                                { name: 'Dep./Ahorro', value: mStats.maquina + mStats.modelado, color: '#3B82F6' }, // Blue
+                                                { name: 'Obj. y Extras', value: mStats.objetos + mStats.extrasCosto, color: '#8B5CF6' }, // Purple
+                                                { name: 'Gastos Manuales', value: mStats.gastosManuales, color: '#EF4444' }, // Red
+                                                { name: 'Coste Mel (25%)', value: mStats.participacionMel, color: '#10B981' } // Green
+                                            ].filter(item => item.value > 0)}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={70}
+                                            outerRadius={95}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {[
+                                                { name: 'Material', value: mStats.material, color: '#F59E0B' },
+                                                { name: 'Dep./Ahorro', value: mStats.maquina + mStats.modelado, color: '#3B82F6' },
+                                                { name: 'Obj. y Extras', value: mStats.objetos + mStats.extrasCosto, color: '#8B5CF6' },
+                                                { name: 'Gastos Manuales', value: mStats.gastosManuales, color: '#EF4444' },
+                                                { name: 'Coste Mel (25%)', value: mStats.participacionMel, color: '#10B981' }
+                                            ].filter(item => item.value > 0).map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip formatter={(value: any) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)} />
+                                        <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="text-gray-400 text-sm h-full flex items-center">Sin gastos registrados este mes</div>
+                            )}
+                        </div>
+                     </Card>
+                     
+                     {/* Rentabilidad del Mes Card */}
+                     <Card className="col-span-1 shadow-sm border-gray-200 p-6 flex flex-col justify-center bg-white">
+                        <h3 className="text-sm font-bold text-gray-700 mb-4">Balance de Flujo ({format(parseISO(selectedMonth + '-01'), 'MMM yyyy', { locale: es })})</h3>
+                        <div className="h-64 w-full flex items-center justify-center">
+                            {mStats.totalIngresos > 0 || mStats.costosProduccion > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={[
+                                            { name: 'Ingresos Totales', valor: mStats.totalIngresos, fill: '#10B981' },
+                                            { name: 'Egresos Totales', valor: mStats.costosProduccion + mStats.gastosManuales + mStats.participacionMel, fill: '#EF4444' },
+                                            { name: 'Ganancia Neta', valor: mStats.gananciaNetaMensual, fill: '#3B82F6' },
+                                        ]}
+                                        margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                        <XAxis dataKey="name" fontSize={11} axisLine={false} tickLine={false} />
+                                        <YAxis tickFormatter={(val) => `$${val}`} fontSize={11} axisLine={false} tickLine={false} />
+                                        <Tooltip cursor={{fill: 'transparent'}} formatter={(value: any) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)} />
+                                        <Bar dataKey="valor" radius={[4, 4, 0, 0]}>
+                                            {[
+                                                { name: 'Ingresos Totales', valor: mStats.totalIngresos, fill: '#10B981' },
+                                                { name: 'Egresos Totales', valor: mStats.costosProduccion + mStats.gastosManuales + mStats.participacionMel, fill: '#EF4444' },
+                                                { name: 'Ganancia Neta', valor: mStats.gananciaNetaMensual, fill: '#3B82F6' },
+                                            ].map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="text-gray-400 text-sm h-full flex items-center">Sin actividad registrada este mes</div>
+                            )}
+                        </div>
+                     </Card>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -450,6 +596,12 @@ export function FinancialOverview() {
                                         <span>Modelado 3D</span>
                                         <span className="text-red-500">-{formatCurrency(mStats.modelado)}</span>
                                     </div>
+                                    {mStats.objetos > 0 && (
+                                        <div className="flex justify-between text-sm text-gray-600">
+                                            <span>Inventario de Objetos/Extras</span>
+                                            <span className="text-red-500">-{formatCurrency(mStats.objetos)}</span>
+                                        </div>
+                                    )}
                                      {mStats.extrasCosto > 0 && (
                                         <div className="flex justify-between text-sm text-gray-600">
                                             <span>Extras (Costos)</span>

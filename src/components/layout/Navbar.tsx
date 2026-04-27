@@ -78,100 +78,74 @@ export default function Navbar({ visible }: NavbarProps) {
             </button>
 
             {/* Menú desktop con Navigation Menu */}
-            <div className="hidden md:flex items-center space-x-2">
+            <div className="hidden md:flex items-center space-x-1">
+                {/* Soluciones Dropdown */}
                 <NavigationMenu className="text-naranja">
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <Link href="/" legacyBehavior passHref>
-                        <NavigationMenuLink className={`${navigationMenuTriggerStyle()} bg-transparent text-naranja hover:bg-naranja/10 hover:text-naranja focus:bg-naranja/10 focus:text-naranja !text-base !font-extrabold`}>
-                          Inicio
-                        </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
-                    
-                    {/* Servicios Dropdown */}
-                    <NavigationMenuItem>
-                        <NavigationMenuTrigger className="bg-transparent text-naranja hover:bg-naranja/10 hover:text-naranja focus:bg-naranja/10 focus:text-naranja !text-base !font-extrabold">Servicios</NavigationMenuTrigger>
-                        <NavigationMenuContent>
-                            <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr] bg-white">
-                                <li className="row-span-4">
-                                    <NavigationMenuLink asChild>
-                                        <a
-                                          className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-naranja/50 to-naranja p-6 no-underline outline-none focus:shadow-md"
-                                          href="/servicios"
-                                        >
-                                            <div className="mb-2 mt-4 text-lg font-medium text-white">
-                                                Servicios 3D
-                                            </div>
-                                            <p className="text-sm leading-tight text-white/90">
-                                                Explora todas nuestras soluciones de fabricación digital.
-                                            </p>
-                                        </a>
-                                    </NavigationMenuLink>
-                                </li>
-                                <ListItem href="/impresion-3d-el-salvador" title="Impresión 3D El Salvador">
-                                    Servicio de manufactura aditiva y diseño.
-                                </ListItem>
-                                <ListItem href="/impresion-3d-estudiantes" title="Para Estudiantes">
-                                    Maquetas, tesis y descuentos académicos.
-                                </ListItem>
-                                <ListItem href="/impresion-3d-emprendedores" title="Para Emprendedores">
-                                    Validación de ideas, MVPs y prototipos.
-                                </ListItem>
-                                <ListItem href="/impresion-3d-empresas" title="Para Empresas">
-                                    Protos funcionales y lotes cortos.
-                                </ListItem>
-                            </ul>
-                        </NavigationMenuContent>
-                    </NavigationMenuItem>
+                    <NavigationMenuList>
+                        <NavigationMenuItem>
+                            <NavigationMenuTrigger className="bg-transparent text-naranja hover:bg-naranja/10 hover:text-naranja focus:bg-naranja/10 focus:text-naranja !text-base !font-extrabold">Soluciones</NavigationMenuTrigger>
+                            <NavigationMenuContent>
+                                <div className="grid grid-cols-2 w-[500px] lg:w-[600px] bg-white p-4 gap-4">
+                                    <div>
+                                        <h4 className="px-3 mb-2 text-xs font-bold text-naranja uppercase tracking-widest opacity-70">Manufactura</h4>
+                                        <ul className="space-y-1">
+                                            <ListItem href="/servicios" title="Todos los Servicios">Ver soluciones.</ListItem>
+                                            <ListItem href="/impresion-3d-el-salvador" title="Impresión 3D">Estudio profesional.</ListItem>
+                                            <ListItem href="/impresion-3d-estudiantes" title="Estudiantes">Maquetas y tesis.</ListItem>
+                                            <ListItem href="/impresion-3d-emprendedores" title="Emprendedores">Prototipado rápido.</ListItem>
+                                            <ListItem href="/impresion-3d-empresas" title="Empresas">Lotes y funcional.</ListItem>
+                                        </ul>
+                                    </div>
+                                    <div className="border-l border-gray-100 pl-4">
+                                        <h4 className="px-3 mb-2 text-xs font-bold text-naranja uppercase tracking-widest opacity-70">Productos</h4>
+                                        <ul className="space-y-1">
+                                            <ListItem href="/catalogo" title="Ir al Catálogo">Nuestra tienda.</ListItem>
+                                            <ListItem href="/llaveros-personalizados-el-salvador" title="Llaveros">Diseños únicos.</ListItem>
+                                            <ListItem href="/piezas-automotrices-3d" title="Automotriz">Repuestos raros.</ListItem>
+                                            <ListItem href="/regalos-personalizados-3d" title="Regalos">Detalles 3D.</ListItem>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </NavigationMenuContent>
+                        </NavigationMenuItem>
+                    </NavigationMenuList>
+                </NavigationMenu>
 
-                    {/* Catálogo Link */}
-                    <NavigationMenuItem>
-                      <Link href="/catalogo" legacyBehavior passHref>
-                        <NavigationMenuLink className={`${navigationMenuTriggerStyle()} bg-transparent text-naranja hover:bg-naranja/10 hover:text-naranja focus:bg-naranja/10 focus:text-naranja !text-base !font-extrabold`}>
-                          Catálogo
-                        </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
+                {/* Tienda Link */}
+                <Link href="/catalogo" className="px-4 py-2 text-naranja hover:bg-naranja/10 rounded-md transition-colors text-base font-extrabold">
+                    Tienda
+                </Link>
 
-                    {/* Recursos Dropdown (New) */}
-                    <NavigationMenuItem>
-                        <NavigationMenuTrigger className="bg-transparent text-naranja hover:bg-naranja/10 hover:text-naranja focus:bg-naranja/10 focus:text-naranja !text-base !font-extrabold">Recursos</NavigationMenuTrigger>
-                        <NavigationMenuContent>
-                            <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] bg-white">
-                                <ListItem href="/proyectos" title="Proyectos y Casos">
-                                    Mira lo que hemos fabricado. Galería de éxito.
-                                </ListItem>
-                                <ListItem href="/materiales-impresion-3d" title="Guía de Materiales">
-                                    ¿PLA, PETG o ABS? Aprende cuál elegir.
-                                </ListItem>
-                                <ListItem href="/como-funciona-impresion-3d" title="¿Cómo funciona?">
-                                    Del archivo digital a la pieza física.
-                                </ListItem>
-                                <ListItem href="/blog" title="Blog (Pronto)">
-                                    Artículos y noticias del mundo 3D.
-                                </ListItem>
-                            </ul>
-                        </NavigationMenuContent>
-                    </NavigationMenuItem>
+                {/* Recursos Dropdown */}
+                <NavigationMenu className="text-naranja">
+                    <NavigationMenuList>
+                        <NavigationMenuItem>
+                            <NavigationMenuTrigger className="bg-transparent text-naranja hover:bg-naranja/10 hover:text-naranja focus:bg-naranja/10 focus:text-naranja !text-base !font-extrabold">Recursos</NavigationMenuTrigger>
+                            <NavigationMenuContent>
+                                <ul className="grid w-[400px] gap-2 p-3 md:w-[500px] md:grid-cols-2 bg-white">
+                                    <ListItem href="/proyectos" title="Proyectos">Galería de éxito.</ListItem>
+                                    <ListItem href="/materiales-impresion-3d" title="Materiales">Guía técnica.</ListItem>
+                                    <ListItem href="/como-funciona-impresion-3d" title="Cómo funciona">Paso a paso.</ListItem>
+                                    <ListItem href="/blog" title="Blog">Tips y noticias.</ListItem>
+                                </ul>
+                            </NavigationMenuContent>
+                        </NavigationMenuItem>
+                    </NavigationMenuList>
+                </NavigationMenu>
 
-
-                    <NavigationMenuItem>
-                      <Link href="/nosotros" legacyBehavior passHref>
-                        <NavigationMenuLink className={`${navigationMenuTriggerStyle()} bg-transparent text-naranja hover:bg-naranja/10 hover:text-naranja focus:bg-naranja/10 focus:text-naranja !text-base !font-extrabold`}>
-                          Nosotros
-                        </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
-
-                    <NavigationMenuItem>
-                      <Link href="/contacto" legacyBehavior passHref>
-                        <NavigationMenuLink className={`${navigationMenuTriggerStyle()} bg-transparent text-naranja hover:bg-naranja/10 hover:text-naranja focus:bg-naranja/10 focus:text-naranja !text-base !font-extrabold`}>
-                          Contacto
-                        </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
+                {/* Compañía Dropdown */}
+                <NavigationMenu className="text-naranja">
+                    <NavigationMenuList>
+                        <NavigationMenuItem>
+                            <NavigationMenuTrigger className="bg-transparent text-naranja hover:bg-naranja/10 hover:text-naranja focus:bg-naranja/10 focus:text-naranja !text-base !font-extrabold">Compañía</NavigationMenuTrigger>
+                            <NavigationMenuContent>
+                                <ul className="flex flex-col w-[160px] p-2 bg-white">
+                                    <ListItem href="/nosotros" title="Nosotros" className="p-2" />
+                                    <ListItem href="/contacto" title="Contacto" className="p-2" />
+                                </ul>
+                            </NavigationMenuContent>
+                        </NavigationMenuItem>
+                    </NavigationMenuList>
                 </NavigationMenu>
 
                 {/* Acciones de Usuario */}
@@ -230,33 +204,31 @@ export default function Navbar({ visible }: NavbarProps) {
                                         >
                                             <X size={28} />
                                         </button>
-                                        <Link
-                                            href="/"
-                                            onClick={() => setMenuOpen(false)}
-                                            className="text-naranja hover:text-white transition w-full border-b border-white/10 pb-2"
-                                        >
-                                            Inicio
-                                        </Link>
                                         <div className="w-full border-b border-white/10 pb-2">
-                                            <Link
-                                                href="/servicios"
-                                                onClick={() => setMenuOpen(false)}
-                                                className="text-naranja hover:text-white transition w-full block mb-2"
-                                            >
-                                                Servicios
-                                            </Link>
-                                            <div className="pl-4 flex flex-col gap-2 text-base text-white/90 font-medium">
-                                                <Link href="/impresion-3d-el-salvador" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
-                                                    • Impresión 3D El Salvador
+                                            <span className="block mb-2 text-naranja">Soluciones</span>
+                                            <div className="pl-4 flex flex-col gap-2 text-base text-white/90 font-medium pb-2">
+                                                <span className="text-xs text-gray-400 uppercase">Manufactura</span>
+                                                <Link href="/impresion-3d-el-salvador" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors underline decoration-white/10 underline-offset-4">
+                                                    • Impresión 3D
                                                 </Link>
-                                                <Link href="/impresion-3d-estudiantes" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
+                                                <Link href="/impresion-3d-estudiantes" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors underline decoration-white/10 underline-offset-4">
                                                     • Para Estudiantes
                                                 </Link>
-                                                <Link href="/impresion-3d-emprendedores" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
+                                                <Link href="/impresion-3d-emprendedores" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors underline decoration-white/10 underline-offset-4">
                                                     • Para Emprendedores
                                                 </Link>
-                                                <Link href="/impresion-3d-empresas" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
+                                                <Link href="/impresion-3d-empresas" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors underline decoration-white/10 underline-offset-4">
                                                     • Para Empresas
+                                                </Link>
+                                                <span className="text-xs text-gray-400 uppercase mt-2">Productos</span>
+                                                <Link href="/llaveros-personalizados-el-salvador" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors underline decoration-white/10 underline-offset-4">
+                                                    • Llaveros 3D
+                                                </Link>
+                                                <Link href="/piezas-automotrices-3d" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors underline decoration-white/10 underline-offset-4">
+                                                    • Piezas Auto
+                                                </Link>
+                                                <Link href="/regalos-personalizados-3d" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors underline decoration-white/10 underline-offset-4">
+                                                    • Regalos Únicos
                                                 </Link>
                                             </div>
                                         </div>
@@ -266,37 +238,18 @@ export default function Navbar({ visible }: NavbarProps) {
                                             onClick={() => setMenuOpen(false)}
                                             className="text-naranja hover:text-white transition w-full border-b border-white/10 pb-2"
                                         >
-                                            Catálogo
+                                            Tienda / Catálogo
                                         </Link>
 
-                                        <div className="w-full border-b border-white/10 pb-2">
-                                            <span className="block mb-2 text-naranja">Recursos</span>
-                                            <div className="pl-4 flex flex-col gap-2 text-base text-white/90 font-medium">
-                                                <Link href="/proyectos" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
-                                                    • Proyectos
-                                                </Link>
-                                                <Link href="/materiales-impresion-3d" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
-                                                    • Materiales
-                                                </Link>
-                                                <Link href="/como-funciona-impresion-3d" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">
-                                                    • Cómo Funciona
-                                                </Link>
+                                        <div className="w-full border-b border-white/10 pb-4">
+                                            <span className="block mb-4 text-naranja text-xs uppercase tracking-widest opacity-80">Compañía y Recursos</span>
+                                            <div className="pl-4 grid grid-cols-2 gap-y-4 gap-x-2 text-sm text-white/90 font-medium">
+                                                <Link href="/nosotros" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">• Nosotros</Link>
+                                                <Link href="/contacto" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">• Contacto</Link>
+                                                <Link href="/proyectos" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">• Proyectos</Link>
+                                                <Link href="/materiales-impresion-3d" onClick={() => setMenuOpen(false)} className="hover:text-naranja transition-colors">• Materiales</Link>
                                             </div>
                                         </div>
-                                        <Link
-                                            href="/nosotros"
-                                            onClick={() => setMenuOpen(false)}
-                                            className="text-naranja hover:text-white transition w-full border-b border-white/10 pb-2"
-                                        >
-                                            Nosotros
-                                        </Link>
-                                        <Link
-                                            href="/contacto"
-                                            onClick={() => setMenuOpen(false)}
-                                            className="text-naranja hover:text-white transition w-full border-b border-white/10 pb-2"
-                                        >
-                                            Contacto
-                                        </Link>
 
                                         <div className="pt-4 w-full">
                                             {user ? (

@@ -2,20 +2,20 @@ import HomeClient from '@/components/home/HomeClient';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Impresión 3D en El Salvador | Prototyp3D',
-  description: 'Servicio profesional de impresión 3D en El Salvador. Creamos prototipos, maquetas y piezas finales. Cobertura en todo el país.',
-  keywords: ['impresión 3D El Salvador', 'prototipado 3D', 'impresoras 3D', 'El Salvador', 'modelado 3D', 'maquetas'],
+  title: 'Prototyp3D | Impresión 3D Profesional en El Salvador',
+  description: 'Cotiza tu impresión 3D en El Salvador y recibe en 48h. Especialistas en repuestos industriales, prototipos y diseños personalizados desde $0.70. Cobertura nacional.',
+  keywords: ['impresión 3D El Salvador', 'repuestos plásticos', 'prototipado rápido', 'impresoras 3D SV', 'modelado 3D', 'maquetas'],
   openGraph: {
-    title: 'Impresión 3D en El Salvador – Prototyp3D',
-    description: 'Materializamos tus ideas con impresión 3D, diseño y fabricación digital en El Salvador.',
+    title: 'Impresión 3D Profesional en El Salvador – Prototyp3D',
+    description: 'Materializamos tus repuestos y prototipos con impresión 3D industrial en El Salvador. Entrega rápida y confiable.',
     url: 'https://www.prototyp3dsv.com',
     siteName: 'Prototyp3D',
     images: [
       {
-        url: '/images/HeroBambu.png', // We will verify this path later or update it
+        url: '/images/HeroBambu.png',
         width: 1200,
         height: 630,
-        alt: 'Impresora 3D Bambu Lab en Prototyp3D El Salvador',
+        alt: 'Servicio de Impresión 3D Profesional en El Salvador - Prototyp3D',
       },
     ],
     locale: 'es_SV',
@@ -23,8 +23,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Prototyp3D | Impresión 3D Experta en El Salvador',
-    description: 'Servicios de impresión 3D y diseño para estudiantes y empresas. Atendemos todo El Salvador.',
+    title: 'Prototyp3D | Soluciones de Impresión 3D en El Salvador',
+    description: 'Expertos en repuestos funcionales y prototipado rápido para empresas y particulares. Cotización inmediata.',
     images: ['/images/HeroBambu.png'],
   },
   alternates: {

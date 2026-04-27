@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { adjustInventoryForJob } from '@/lib/inventory-utils';
 import { GestionTrabajo, PiezaTrabajo, ExtraAplicado } from './types';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, Calendar, CheckCircle, Truck, Package, DollarSign, FileBox, ExternalLink, Pencil, Trash2 } from "lucide-react";
-import { PieceForm } from './PieceForm';
+import { ArrowLeft, Clock, Calendar, CheckCircle, Truck, Package, DollarSign, FileBox, ExternalLink, Pencil, Trash2, History as HistoryIcon } from "lucide-react";
+import { 
+PieceForm } from './PieceForm';
 import { ExtrasSelector } from './ExtrasSelector';
 import { CreateJobModal } from './CreateJobModal';
 import StudentFileQuoteRow from './StudentFileQuoteRow';
@@ -102,19 +104,8 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
             if (pieceExtras) allExtras = [...allExtras, ...pieceExtras];
         }
 
-        // 4. Fetch Extra Names
-        if (allExtras.length > 0) {
-            const extraIds = Array.from(new Set(allExtras.map(e => e.extra_id)));
-            const { data: names } = await supabase
-                .from('catalogo_extras')
-                .select('id, nombre')
-                .in('id', extraIds);
-            
-            const nameMap: Record<string, string> = {};
-            if (names) names.forEach(n => nameMap[n.id] = n.nombre);
-            setExtraNames(nameMap);
-        }
-
+        // 4. (Removed) Extra Names using catalog, now using pure concepto text
+        
         if (jobData) setJob(jobData);
         if (piecesData) setPieces(piecesData);
         setExtras(allExtras);
@@ -128,6 +119,11 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
     const updateStatus = async (newStatus: any, montoCobrado?: number) => {
         if (!job) return;
         
+        const oldStatus = job.estado;
+        const inventoryAffectingStates = ['aprobado', 'en_produccion', 'listo', 'entregado'];
+        const isOldActive = inventoryAffectingStates.includes(oldStatus);
+        const isNewActive = inventoryAffectingStates.includes(newStatus);
+
         const updates: any = { estado: newStatus };
         if (montoCobrado !== undefined) {
             updates.monto_cobrado = montoCobrado;
@@ -138,10 +134,24 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
             .update(updates)
             .eq('id', jobId);
         
-        if (!error) {
-            setJob({ ...job, ...updates });
+        if (error) {
+            console.error("Error updating status:", error);
+            alert("Error al actualizar estado");
+            return;
         }
+
+        // --- Inventory Management Logic ---
+        if (!isOldActive && isNewActive) {
+            // Transition: Inactive -> Active (DEDUCT)
+            await adjustInventoryForJob(jobId, true);
+        } else if (isOldActive && !isNewActive) {
+            // Transition: Active -> Inactive (RETURN)
+            await adjustInventoryForJob(jobId, false);
+        }
+
+        setJob({ ...job, ...updates });
     };
+
 
     const handlePaymentUpdate = async (amountToAdd: number) => {
         if (!job) return;
@@ -162,9 +172,49 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
         }
     };
 
-    const deletePiece = async (id: string) => {
+    const deletePiece = async (id: string, pieceData: PiezaTrabajo) => {
         if (!confirm('¿Estás seguro de que quieres eliminar esta pieza?')) return;
         
+        // 1. Return inventory if job is active
+        const inventoryAffectingStates = ['aprobado', 'en_produccion', 'listo', 'entregado'];
+        if (job && inventoryAffectingStates.includes(job.estado)) {
+            // Filament
+            if (pieceData.filamento_id && pieceData.gramos_usados > 0) {
+                const totalGrams = pieceData.gramos_usados * pieceData.cantidad;
+                const { data: filament } = await supabase
+                    .from('inventario_filamento')
+                    .select('stock_gramos_disponibles')
+                    .eq('id', pieceData.filamento_id)
+                    .single();
+                
+                if (filament) {
+                    await supabase
+                        .from('inventario_filamento')
+                        .update({ stock_gramos_disponibles: (filament.stock_gramos_disponibles || 0) + totalGrams })
+                        .eq('id', pieceData.filamento_id);
+                }
+            }
+
+            // Object
+            if (pieceData.objeto_id && pieceData.cantidad_objeto_por_pieza !== null && pieceData.cantidad_objeto_por_pieza !== undefined && pieceData.cantidad_objeto_por_pieza > 0) {
+                const qty = pieceData.cantidad_objeto_por_pieza;
+                const totalObjects = qty * pieceData.cantidad;
+                const { data: obj } = await supabase
+                    .from('inventario_objetos')
+                    .select('stock_disponible')
+                    .eq('id', pieceData.objeto_id)
+                    .single();
+                
+                if (obj) {
+                    await supabase
+                        .from('inventario_objetos')
+                        .update({ stock_disponible: (obj.stock_disponible || 0) + totalObjects })
+                        .eq('id', pieceData.objeto_id);
+                }
+            }
+        }
+
+        // 2. Delete the piece
         const { error } = await supabase
             .from('piezas_trabajo')
             .delete()
@@ -186,6 +236,7 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
     const totalMaterialCost = pieces.reduce((sum, p) => sum + (p.costo_filamento_snapshot * p.cantidad), 0);
     const totalMachineCost = pieces.reduce((sum, p) => sum + (p.tiempo_impresora_h * p.costo_impresora_h_rate * p.cantidad), 0);
     const totalModelingCost = pieces.reduce((sum, p) => sum + (p.tiempo_modelado_h * p.costo_modelado_h_rate * p.cantidad), 0);
+    const totalObjectCost = pieces.reduce((sum, p) => sum + ((p.costo_objeto_snapshot || 0) * (p.cantidad_objeto_por_pieza || 0) * p.cantidad), 0);
     
     // Extras
     const totalExtrasSale = extras.reduce((sum, e) => sum + (e.es_venta ? e.subtotal : 0), 0);
@@ -243,7 +294,7 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                             variant="outline" 
                                             size="sm" 
                                             disabled={loading}
-                                            className="ml-2 h-8 text-xs bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:border-red-300"
+                                            className="ml-2 h-8 text-xs bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:border-300"
                                         >
                                             {loading ? 'Generando...' : 'Exportar PDF'}
                                         </Button>
@@ -264,36 +315,47 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
 
                 <div className="flex flex-col items-end gap-3">
                     {/* 1. Job Workflow Status */}
-                     <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
-                        {['activo', 'entregado', 'cancelado'].map((s) => {
-                            const isActive = 
-                                s === 'activo' ? ['aprobado', 'en_produccion', 'listo', 'cotizado'].includes(job.estado) :
-                                job.estado === s;
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
+                            {['cotizado', 'aprobado', 'entregado', 'cancelado'].map((s) => {
+                                const isActive = job.estado === s;
+                                const label = 
+                                    s === 'cotizado' ? 'Cotizado' :
+                                    s === 'aprobado' ? 'Aprobado' :
+                                    s === 'entregado' ? 'Entregado' : 'Cancelado';
                                 
-                            const label = s === 'activo' ? 'En Proceso' : s.charAt(0).toUpperCase() + s.slice(1);
-                            
-                            return (
-                                <button
-                                    key={s}
-                                    onClick={() => {
-                                        if (s === 'activo') updateStatus('aprobado'); 
-                                        else updateStatus(s);
-                                    }}
-                                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                                        isActive
-                                        ? s === 'cancelado' 
-                                            ? 'bg-red-100 text-red-700 shadow-sm' 
-                                            : s === 'entregado'
-                                                ? 'bg-green-100 text-green-700 shadow-sm'
-                                                : 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    {label}
-                                </button>
-                            );
-                        })}
-                    </div>
+                                return (
+                                    <button
+                                        key={s}
+                                        onClick={() => updateStatus(s as any)}
+                                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                                            isActive 
+                                                ? s === 'cancelado' 
+                                                    ? 'bg-red-600 text-white shadow-sm' 
+                                                    : 'bg-naranja text-white shadow-sm' 
+                                                : 'text-gray-500 hover:bg-white hover:text-gray-900'
+                                        }`}
+                                    >
+                                        {label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        
+                        {job.estado === 'cotizado' && (
+                            <button 
+                                onClick={async () => {
+                                    if(confirm('¿Seguro que quieres devolver el material de esta cotización al inventario? Hazlo solo si ves que el stock actual es incorrecto (negativo).')) {
+                                        await adjustInventoryForJob(jobId, false);
+                                        alert('Material devuelto al inventario con éxito.');
+                                    }
+                                }}
+                                className="text-[10px] text-orange-600 hover:underline flex items-center justify-end gap-1 font-medium"
+                            >
+                                <HistoryIcon className="h-3 w-3" /> Devolver material de esta cotización al inventario
+                            </button>
+                        )}
+                      </div>
 
                     {/* 2. Payment Status Control */}
                     <div className="flex items-center gap-3">
@@ -472,7 +534,7 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                                         variant="ghost" 
                                                         size="sm" 
                                                         className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-600"
-                                                        onClick={() => deletePiece(p.id)}
+                                                        onClick={() => deletePiece(p.id, p)}
                                                     >
                                                         <span className="sr-only">Eliminar</span>
                                                         <Trash2 className="h-4 w-4" />
@@ -517,7 +579,7 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                     <tbody className="divide-y divide-gray-100">
                                         {extras.map(e => (
                                             <tr key={e.id} className="hover:bg-gray-50/50">
-                                                <td className="px-4 py-3 font-medium">{extraNames[e.extra_id] || e.extra_id}</td>
+                                                <td className="px-4 py-3 font-medium">{e.concepto || 'Servicio Adicional'}</td>
                                                 <td className="px-4 py-3 text-center text-xs text-gray-500">
                                                     {e.pieza_id ? 'Pieza' : 'Pedido'}
                                                 </td>
@@ -580,6 +642,12 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                     <span>${totalModelingCost.toFixed(2)}</span>
                                 </div>
                             )}
+                            {totalObjectCost > 0 && (
+                                <div className="flex justify-between text-gray-300 pl-2">
+                                    <span>Objetos Extra (Físicos)</span>
+                                    <span>${totalObjectCost.toFixed(2)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between text-gray-300 pl-2">
                                 <span>Extras/Envíos</span>
                                 <span>${totalExtrasCost.toFixed(2)}</span>
@@ -614,6 +682,12 @@ export function JobDetails({ jobId, onBack }: JobDetailsProps) {
                                 <span>Ganancia Estimada</span>
                                 <span>${grandTotalProfit.toFixed(2)}</span>
                             </div>
+                            {grandTotalProfit > 0 && (
+                                <div className="flex justify-between text-amber-400 text-xs font-semibold mt-2 pt-2 border-t border-gray-700">
+                                    <span>Liquidación Mel (25%)</span>
+                                    <span>${(grandTotalProfit * 0.25).toFixed(2)}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 

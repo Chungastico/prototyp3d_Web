@@ -14,6 +14,8 @@ async function initAmplitude() {
 
   await amplitude.init('327787b275f9fbb8f2af76cc283aac30', undefined, {
     autocapture: true,
+    fetchRemoteConfig: false,
+    logLevel: amplitude.Types.LogLevel.None,
   }).promise;
 }
 

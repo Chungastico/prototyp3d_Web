@@ -82,7 +82,6 @@ export function JobsList({ onEdit, refreshKey, selectedJobId, onSelectJob }: Job
     };
 
     const formatStatus = (status: string) => {
-        if (status === 'en_produccion') return 'En Producción';
         return status.charAt(0).toUpperCase() + status.slice(1);
     }
 

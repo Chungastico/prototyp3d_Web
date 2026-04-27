@@ -1,6 +1,7 @@
 import React from 'react';
 import { InventoryList } from '@/components/admin/inventory/InventoryList';
 import { SupplierList } from '@/components/admin/inventory/SupplierList';
+import { ObjectInventoryList } from '@/components/admin/inventory/ObjectInventoryList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function InventoryPage() {
@@ -11,11 +12,16 @@ export default function InventoryPage() {
             <Tabs defaultValue="inventory" className="w-full">
                 <TabsList className="bg-white border">
                     <TabsTrigger value="inventory">Inventario de Filamentos</TabsTrigger>
+                    <TabsTrigger value="objects">Objetos / Extras</TabsTrigger>
                     <TabsTrigger value="suppliers">Proveedores</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="inventory" className="mt-6">
                     <InventoryList />
+                </TabsContent>
+
+                <TabsContent value="objects" className="mt-6">
+                    <ObjectInventoryList />
                 </TabsContent>
                 
                 <TabsContent value="suppliers" className="mt-6">

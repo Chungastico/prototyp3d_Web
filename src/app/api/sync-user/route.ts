@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { currentUser } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 
 export async function POST() {
     try {
-        const user = await currentUser();
+        const { userId } = await auth();
 
-        if (!user) {
+        if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+
+        // Obtener datos del usuario de forma robusta con el SDK de servidor
+        const client = await clerkClient();
+        const user = await client.users.getUser(userId);
 
         const email = user.emailAddresses[0]?.emailAddress;
 

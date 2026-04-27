@@ -78,24 +78,34 @@ export default function Hero() {
                 <div className="w-full md:w-[55%] text-center md:text-left z-10">
                     <h1
                         ref={titleRef}
-                        className="text-4xl sm:text-5xl md:text-[56px] lg:text-[64px] font-extrabold mb-4 md:mb-6 leading-tight"
+                        className="text-4xl sm:text-5xl md:text-[56px] lg:text-[64px] font-extrabold mb-4 md:mb-6 leading-tight uppercase"
                     >
-                        <span className="block">DALE FORMA A</span>
-                        <span className="block">TUS IDEAS</span>
-                        <span className="sr-only"> - Impresión 3D en El Salvador</span>
+                        <span className="block">Soluciones en</span>
+                        <span className="block text-naranja">Impresión 3D</span>
+                        <span className="sr-only"> - Repuestos y Prototipos en El Salvador</span>
                     </h1>
                     <p
                         ref={subtitleRef}
-                        className="text-lg sm:text-xl md:text-2xl lg:text-3xl mb-6 md:mb-8 font-normal"
+                        className="text-lg sm:text-xl md:text-2xl lg:text-3xl mb-6 md:mb-8 font-normal text-gray-200"
                     >
-                        Te ayudamos a materializar conceptos con impresión 3D accesible y confiable en El Salvador.
+                        Expertos en repuestos industriales, piezas funcionales y prototipado rápido con entrega en todo El Salvador.
                     </p>
-                    <button
-                        ref={buttonRef}
-                        className="bg-white border border-white text-azul-oscuro text-base sm:text-lg md:text-xl font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-full hover:bg-azul-oscuro hover:text-white transition"
-                    >
-                        Explorar servicios
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                        <a
+                            href="https://wa.me/50376253509?text=Hola,%20quisiera%20cotizar%20una%20impresión%203D"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-white border border-white text-azul-oscuro text-base sm:text-lg md:text-xl font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-full hover:bg-azul-oscuro hover:text-white transition flex items-center justify-center gap-2"
+                        >
+                             Cotizar por WhatsApp
+                        </a>
+                        <button
+                            className="bg-transparent border border-white text-white text-base sm:text-lg md:text-xl font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-full hover:bg-white hover:text-azul-oscuro transition"
+                            onClick={() => document.getElementById('servicios')?.scrollIntoView({ behavior: 'smooth' })}
+                        >
+                            Ver servicios
+                        </button>
+                    </div>
                 </div>
 
                 {/* Imagen derecha */}

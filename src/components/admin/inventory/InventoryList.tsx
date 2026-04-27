@@ -9,6 +9,9 @@ import { Search, Plus, Edit2, ShoppingBag, Ban } from "lucide-react";
 import { FilamentModal } from './FilamentModal';
 import { PurchaseModal } from './PurchaseModal';
 import { AdjustStockModal } from './AdjustStockModal';
+import { UsageModal } from './UsageModal';
+import { History as HistoryIcon, RefreshCw } from "lucide-react";
+import { adjustInventoryForJob } from '@/lib/inventory-utils';
 import {
     Table,
     TableBody,
@@ -34,6 +37,7 @@ export function InventoryList() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
     const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+    const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
     
     const [selectedFilament, setSelectedFilament] = useState<InventarioFilamento | null>(null);
 
@@ -74,6 +78,38 @@ export function InventoryList() {
         setIsAdjustModalOpen(true);
     }
 
+    const handleViewUsage = (filament: InventarioFilamento) => {
+        setSelectedFilament(filament);
+        setIsUsageModalOpen(true);
+    }
+
+    const syncStockFromQuotes = async () => {
+        if (!confirm('Esta acción buscará todas las cotizaciones y devolverá el material al inventario si ya fue descontado por error. ¿Deseas continuar?')) return;
+        
+        setLoading(true);
+        try {
+            const { data: cotizaciones } = await supabase
+                .from('gestion_trabajos')
+                .select('id')
+                .eq('estado', 'cotizado');
+            
+            if (cotizaciones && cotizaciones.length > 0) {
+                for (const job of cotizaciones) {
+                    await adjustInventoryForJob(job.id, false);
+                }
+                alert(`Sincronización completada. Se procesaron ${cotizaciones.length} cotizaciones.`);
+                fetchInventory();
+            } else {
+                alert('No se encontraron cotizaciones para sincronizar.');
+            }
+        } catch (error) {
+            console.error("Error syncing inventory:", error);
+            alert("Error durante la sincronización.");
+        } finally {
+            setLoading(false);
+        }
+    }
+
     const filteredFilaments = filaments.filter(f => 
         f.color_tipo_filamento.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (f.marca && f.marca.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -93,6 +129,10 @@ export function InventoryList() {
                     />
                 </div>
                 <div className="flex gap-2">
+                    <Button onClick={syncStockFromQuotes} variant="outline" className="text-gray-600 border-gray-300 hover:bg-gray-50 group">
+                        <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> 
+                        <span className="hidden md:inline">Sincronizar Stock</span>
+                    </Button>
                     <Button onClick={() => setIsPurchaseModalOpen(true)} variant="outline" className="text-naranja border-naranja hover:bg-orange-50">
                         <ShoppingBag className="mr-2 h-4 w-4" /> Registrar Compra
                     </Button>
@@ -169,20 +209,33 @@ export function InventoryList() {
                                                 </Tooltip>
                                             </TooltipProvider>
 
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50" onClick={() => handleEdit(f)}>
-                                                            <Edit2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>Editar detalles</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        </div>
-                                    </TableCell>
+                                             <TooltipProvider>
+                                                 <Tooltip>
+                                                     <TooltipTrigger asChild>
+                                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-green-600 hover:bg-green-50" onClick={() => handleViewUsage(f)}>
+                                                             <HistoryIcon className="h-4 w-4" />
+                                                         </Button>
+                                                     </TooltipTrigger>
+                                                     <TooltipContent>
+                                                         <p>Ver historial de uso (Proyectos)</p>
+                                                     </TooltipContent>
+                                                 </Tooltip>
+                                             </TooltipProvider>
+
+                                             <TooltipProvider>
+                                                 <Tooltip>
+                                                     <TooltipTrigger asChild>
+                                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50" onClick={() => handleEdit(f)}>
+                                                             <Edit2 className="h-4 w-4" />
+                                                         </Button>
+                                                     </TooltipTrigger>
+                                                     <TooltipContent>
+                                                         <p>Editar detalles</p>
+                                                     </TooltipContent>
+                                                 </Tooltip>
+                                             </TooltipProvider>
+                                         </div>
+                                     </TableCell>
                                 </TableRow>
                             ))
                         )}
@@ -209,6 +262,13 @@ export function InventoryList() {
                 onOpenChange={setIsAdjustModalOpen}
                 filament={selectedFilament}
                 onSaved={fetchInventory}
+            />
+
+            <UsageModal
+                open={isUsageModalOpen}
+                onOpenChange={setIsUsageModalOpen}
+                filamentId={selectedFilament?.id || null}
+                filamentName={selectedFilament?.color_tipo_filamento || ''}
             />
         </div>
     );

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { InventarioFilamento, PiezaTrabajo } from './types';
+import { InventarioFilamento, PiezaTrabajo, InventarioObjeto } from './types';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -24,19 +24,6 @@ import {
 } from "@/components/ui/dialog";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
 
 interface PieceFormProps {
     open: boolean;
@@ -49,6 +36,7 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
     const [loading, setLoading] = useState(false);
     const [filaments, setFilaments] = useState<InventarioFilamento[]>([]);
     const [openFilamentCombo, setOpenFilamentCombo] = useState(false);
+    const filamentRef = React.useRef<HTMLDivElement>(null);
     
     // Form Factors
     const COSTO_IMPRESORA_H = 0.50;
@@ -58,8 +46,15 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
     const [nombre, setNombre] = useState('');
     const [descripcion, setDescripcion] = useState('');
     const [cantidad, setCantidad] = useState(1);
+    const [filamentSearch, setFilamentSearch] = useState('');
     const [selectedFilamentId, setSelectedFilamentId] = useState('');
     const [gramosUnit, setGramosUnit] = useState(0);
+    
+    // New State for Objects/Extras
+    const [incluyeObjeto, setIncluyeObjeto] = useState(false);
+    const [objetos, setObjetos] = useState<InventarioObjeto[]>([]);
+    const [selectedObjetoId, setSelectedObjetoId] = useState('none');
+    const [cantidadObjetoPorPieza, setCantidadObjetoPorPieza] = useState(1);
     
     // New State for Split Time
     const [printingHours, setPrintingHours] = useState(0);
@@ -79,33 +74,41 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
     // Financials (Manual) - Now representing BASE Price (Hardware/Print only)
     const [basePrice, setBasePrice] = useState(0);
 
-    // Derived
+    // Derived Data
     const selectedFilament = filaments.find(f => f.id === selectedFilamentId);
     const precioGramo = selectedFilament?.precio_por_gramo || 0;
     const costoFilamento = gramosUnit * precioGramo;
     const costoImpresion = totalPrintingHours * COSTO_IMPRESORA_H;
+
+    const selectedObjeto = objetos.find(o => o.id === selectedObjetoId);
+    const objetoCostoUnitario = incluyeObjeto && selectedObjeto ? selectedObjeto.costo_unitario : 0;
+    
+    // El objeto solo impacta el costo de producción.
+    const costoObjetoEnPieza = incluyeObjeto ? objetoCostoUnitario * cantidadObjetoPorPieza : 0;
     
     // Amortize modeling cost per unit
     const totalModelingCost = totalModelingHoursInput * COSTO_MODELADO_H;
     const amortizedModelingCost = cantidad > 0 ? totalModelingCost / cantidad : 0;
     const amortizedModelingHours = cantidad > 0 ? totalModelingHoursInput / cantidad : 0;
 
-    // Total Production Cost (Unit) = Mat + PrintTime + AmortizedModeling
-    const costoTotalUnit = costoFilamento + costoImpresion + amortizedModelingCost;
+    // Total Production Cost (Unit) = Mat + PrintTime + AmortizedModeling + ObjectCost
+    const costoTotalUnit = costoFilamento + costoImpresion + amortizedModelingCost + costoObjetoEnPieza;
     
-    const suggestedMin = totalPrintingHours * 1.0 + costoFilamento; 
-    const suggestedMax = totalPrintingHours * 2.0 + costoFilamento;
+    // Rango Sugerido sumando el costo de las argollas
+    const suggestedMin = totalPrintingHours * 1.0 + costoFilamento + costoObjetoEnPieza; 
+    const suggestedMax = totalPrintingHours * 2.0 + costoFilamento + costoObjetoEnPieza;
 
     // Final Price to Customer (Unit) = Base Price (for print) + Amortized Modeling Cost
     const precioFinalUnit = basePrice + amortizedModelingCost;
 
-    // Profit (Unit) = Base Price - (Material + PrintTime)
-    // We exclude modeling cost from profit calc because it's effectively "paid" by the extra charge
-    const gananciaUnit = basePrice - (costoFilamento + costoImpresion);
+    // Profit (Unit) = Base Price - (Material + PrintTime + Objeto)
+    // El objeto es un gasto directo puro, así que resta a la ganancia de la impresión.
+    const gananciaUnit = basePrice - (costoFilamento + costoImpresion + costoObjetoEnPieza);
 
     useEffect(() => {
         if (open) {
             fetchFilaments();
+            fetchObjetos();
             if (pieceToEdit) {
                 setNombre(pieceToEdit.nombre_pieza);
                 setDescripcion(pieceToEdit.descripcion_pieza || '');
@@ -124,11 +127,20 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                 setModelingHours(mHours);
                 setModelingMinutes(mMinutes);
                 
-                // Reverse engineer base price: Final Unit Price - Amortized Modeling Cost
+                // Base Price calculation correctly excludes the object's selling price since it was added dynamically.
                 const unitModelCost = (pieceToEdit.tiempo_modelado_h || 0) * COSTO_MODELADO_H;
                 setBasePrice(pieceToEdit.precio_final_unit - unitModelCost);
                 
                 setSelectedFilamentId(pieceToEdit.filamento_id);
+                if (pieceToEdit.objeto_id) {
+                    setIncluyeObjeto(true);
+                    setSelectedObjetoId(pieceToEdit.objeto_id);
+                    setCantidadObjetoPorPieza(pieceToEdit.cantidad_objeto_por_pieza || 1);
+                } else {
+                    setIncluyeObjeto(false);
+                    setSelectedObjetoId('none');
+                    setCantidadObjetoPorPieza(1);
+                }
             } else {
                 // Reset
                 setNombre('');
@@ -141,9 +153,51 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                 setModelingMinutes(0);
                 setBasePrice(0);
                 setSelectedFilamentId('');
+                setFilamentSearch('');
+                setIncluyeObjeto(false);
+                setSelectedObjetoId('none');
+                setCantidadObjetoPorPieza(1);
             }
         }
     }, [open, pieceToEdit]);
+
+    // Sync filament search label
+    useEffect(() => {
+        if (selectedFilamentId && filaments.length > 0) {
+            const f = filaments.find(item => item.id === selectedFilamentId);
+            if (f) setFilamentSearch(`${f.color_tipo_filamento} (${f.material})`);
+        }
+    }, [selectedFilamentId, filaments]);
+
+    // Close dropdown on click outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (filamentRef.current && !filamentRef.current.contains(event.target as Node)) {
+                setOpenFilamentCombo(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    // Auto-calculate base price - media of suggestion
+    useEffect(() => {
+        // Solo autocalcular si hay datos reales (tiempo o material) y es una pieza nueva
+        const hasData = totalPrintingHours > 0 || gramosUnit > 0 || (incluyeObjeto && selectedObjetoId !== 'none');
+        
+        if (open && hasData && suggestedMin > 0 && suggestedMax > 0 && !pieceToEdit) {
+            const average = (suggestedMin + suggestedMax) / 2;
+            setBasePrice(parseFloat(average.toFixed(2)));
+        } else if (open && !hasData && !pieceToEdit) {
+            // Si no hay datos, asegurar que el precio base sea 0 para no confundir
+            setBasePrice(0);
+        }
+    }, [suggestedMin, suggestedMax, open, pieceToEdit, totalPrintingHours, gramosUnit, incluyeObjeto, selectedObjetoId]);
+
+    const fetchObjetos = async () => {
+        const { data } = await supabase.from('inventario_objetos').select('*').order('nombre');
+        if (data) setObjetos(data);
+    };
 
     const fetchFilaments = async () => {
         const { data, error } = await supabase
@@ -157,10 +211,32 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
     };
 
     const handleSubmit = async () => {
-        if (!nombre || !selectedFilamentId) return;
+        if (!nombre || !selectedFilamentId) {
+            alert("Por favor, completa el nombre y selecciona un filamento.");
+            return;
+        }
+        if (totalPrintingHours <= 0) {
+            alert("El tiempo de impresión es obligatorio y debe ser mayor a 0.");
+            return;
+        }
+        if (gramosUnit <= 0) {
+            alert("Los gramos de material son obligatorios.");
+            return;
+        }
+
         setLoading(true);
 
         try {
+            // 0. Fetch Job Status
+            const { data: jobData } = await supabase
+                .from('gestion_trabajos')
+                .select('estado')
+                .eq('id', jobId)
+                .single();
+            
+            const currentJobStatus = jobData?.estado || 'cotizado';
+            const shouldAffectInventory = currentJobStatus !== 'cotizado' && currentJobStatus !== 'cancelado';
+
             // 1. Prepare Payload
             const piecePayload = {
                 trabajo_id: jobId,
@@ -187,7 +263,12 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                 
                 total_venta: precioFinalUnit * cantidad,
                 total_costo: costoTotalUnit * cantidad,
-                total_ganancia: gananciaUnit * cantidad
+                total_ganancia: gananciaUnit * cantidad,
+
+                objeto_id: incluyeObjeto && selectedObjetoId !== 'none' ? selectedObjetoId : null,
+                cantidad_objeto_por_pieza: incluyeObjeto ? cantidadObjetoPorPieza : null,
+                costo_objeto_snapshot: incluyeObjeto && selectedObjeto ? selectedObjeto.costo_unitario : null,
+                precio_venta_objeto_snapshot: incluyeObjeto && selectedObjeto ? selectedObjeto.costo_unitario : null
             };
 
             let pieceId = pieceToEdit?.id;
@@ -237,48 +318,111 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                 if (consumoError) console.error("Error creating/updating consumption:", consumoError);
                 
                 // 3. Update Inventory Stock (Deduct Usage)
-                let gramsToDeduct = gramosTotales;
+                if (shouldAffectInventory) {
+                    let gramsToDeduct = gramosTotales;
 
-                if (pieceToEdit) {
-                    if (pieceToEdit.filamento_id !== selectedFilamentId) {
-                        // Return stock to OLD filament
-                        const oldTotal = pieceToEdit.gramos_usados * pieceToEdit.cantidad;
-                        const { data: oldFilamentData } = await supabase
-                            .from('inventario_filamento')
-                            .select('stock_gramos_disponibles')
-                            .eq('id', pieceToEdit.filamento_id)
-                            .single();
-                        
-                        if (oldFilamentData) {
-                             const restoredStock = (oldFilamentData.stock_gramos_disponibles || 0) + oldTotal;
-                             await supabase
+                    if (pieceToEdit) {
+                        if (pieceToEdit.filamento_id !== selectedFilamentId) {
+                            // Return stock to OLD filament
+                            const oldTotal = pieceToEdit.gramos_usados * pieceToEdit.cantidad;
+                            const { data: oldFilamentData } = await supabase
                                 .from('inventario_filamento')
-                                .update({ stock_gramos_disponibles: restoredStock })
-                                .eq('id', pieceToEdit.filamento_id);
-                        }
-                        gramsToDeduct = gramosTotales; 
+                                .select('stock_gramos_disponibles')
+                                .eq('id', pieceToEdit.filamento_id)
+                                .single();
+                            
+                            if (oldFilamentData) {
+                                 const restoredStock = (oldFilamentData.stock_gramos_disponibles || 0) + oldTotal;
+                                 await supabase
+                                    .from('inventario_filamento')
+                                    .update({ stock_gramos_disponibles: restoredStock })
+                                    .eq('id', pieceToEdit.filamento_id);
+                            }
+                            gramsToDeduct = gramosTotales; 
 
-                    } else {
-                        // Same filament, just adjust amount
-                        const oldTotal = pieceToEdit.gramos_usados * pieceToEdit.cantidad;
-                        gramsToDeduct = gramosTotales - oldTotal;
+                        } else {
+                            // Same filament, just adjust amount
+                            const oldTotal = pieceToEdit.gramos_usados * pieceToEdit.cantidad;
+                            gramsToDeduct = gramosTotales - oldTotal;
+                        }
+                    }
+
+                    const { data: currentFilamentData } = await supabase
+                        .from('inventario_filamento')
+                        .select('stock_gramos_disponibles')
+                        .eq('id', selectedFilamentId)
+                        .single();
+
+                    if (currentFilamentData) {
+                        const currentStock = currentFilamentData.stock_gramos_disponibles || 0;
+                        const newStock = currentStock - gramsToDeduct;
+
+                        await supabase
+                            .from('inventario_filamento')
+                            .update({ stock_gramos_disponibles: newStock })
+                            .eq('id', selectedFilamentId);
                     }
                 }
 
-                const { data: currentFilamentData } = await supabase
-                    .from('inventario_filamento')
-                    .select('stock_gramos_disponibles')
-                    .eq('id', selectedFilamentId)
-                    .single();
+                // 4. Update Inventory Stock for Objects (Argollas)
+                if (shouldAffectInventory) {
+                    if (incluyeObjeto && selectedObjetoId !== 'none') {
+                        const totalObjectsUsed = cantidad * cantidadObjetoPorPieza;
+                        let objectsToDeduct = totalObjectsUsed;
 
-                if (currentFilamentData) {
-                    const currentStock = currentFilamentData.stock_gramos_disponibles || 0;
-                    const newStock = currentStock - gramsToDeduct;
+                        if (pieceToEdit && pieceToEdit.objeto_id) {
+                            if (pieceToEdit.objeto_id !== selectedObjetoId) {
+                                // Return stock to OLD object
+                                const oldObjTotal = (pieceToEdit.cantidad_objeto_por_pieza || 0) * pieceToEdit.cantidad;
+                                const { data: oldObjData } = await supabase
+                                    .from('inventario_objetos')
+                                    .select('stock_disponible')
+                                    .eq('id', pieceToEdit.objeto_id)
+                                    .single();
+                                
+                                if (oldObjData) {
+                                    await supabase
+                                        .from('inventario_objetos')
+                                        .update({ stock_disponible: (oldObjData.stock_disponible || 0) + oldObjTotal })
+                                        .eq('id', pieceToEdit.objeto_id);
+                                }
+                                objectsToDeduct = totalObjectsUsed; 
+                            } else {
+                                // Same object, adjust amount
+                                const oldObjTotal = (pieceToEdit.cantidad_objeto_por_pieza || 0) * pieceToEdit.cantidad;
+                                objectsToDeduct = totalObjectsUsed - oldObjTotal;
+                            }
+                        }
 
-                    await supabase
-                        .from('inventario_filamento')
-                        .update({ stock_gramos_disponibles: newStock })
-                        .eq('id', selectedFilamentId);
+                        // Deduct
+                        const { data: currObjData } = await supabase
+                            .from('inventario_objetos')
+                            .select('stock_disponible')
+                            .eq('id', selectedObjetoId)
+                            .single();
+
+                        if (currObjData && objectsToDeduct !== 0) {
+                            await supabase
+                                .from('inventario_objetos')
+                                .update({ stock_disponible: (currObjData.stock_disponible || 0) - objectsToDeduct })
+                                .eq('id', selectedObjetoId);
+                        }
+                    } else if (pieceToEdit && pieceToEdit.objeto_id) {
+                        // Objeto fue desmarcado, devolver todo el stock
+                        const oldObjTotal = (pieceToEdit.cantidad_objeto_por_pieza || 0) * pieceToEdit.cantidad;
+                        const { data: oldObjData } = await supabase
+                            .from('inventario_objetos')
+                            .select('stock_disponible')
+                            .eq('id', pieceToEdit.objeto_id)
+                            .single();
+                        
+                        if (oldObjData) {
+                            await supabase
+                                .from('inventario_objetos')
+                                .update({ stock_disponible: (oldObjData.stock_disponible || 0) + oldObjTotal })
+                                .eq('id', pieceToEdit.objeto_id);
+                        }
+                    }
                 }
             }
 
@@ -303,7 +447,7 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                     {/* Left Column: Inputs */}
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label>Nombre Pieza</Label>
+                            <Label>Nombre Pieza <span className="text-red-500">*</span></Label>
                             <Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej. Engranaje Principal" />
                         </div>
                         
@@ -322,58 +466,58 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                                 />
                             </div>
                             <div className="space-y-2 flex flex-col">
-                                <Label className="mb-2">Filamento</Label>
-                                <Popover open={openFilamentCombo} onOpenChange={setOpenFilamentCombo}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={openFilamentCombo}
-                                            className="w-full justify-between font-normal"
-                                        >
-                                            {selectedFilamentId
-                                                ? filaments.find((f) => f.id === selectedFilamentId)?.color_tipo_filamento + ` (${filaments.find((f) => f.id === selectedFilamentId)?.material})`
-                                                : "Seleccionar..."}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[300px] p-0">
-                                        <Command>
-                                            <CommandInput placeholder="Buscar filamento..." />
-                                            <CommandList>
-                                                <CommandEmpty>No se encontró filamento.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {filaments.map((f) => (
-                                                        <CommandItem
-                                                            key={f.id}
-                                                            value={`${f.color_tipo_filamento} ${f.material} ${f.marca}`}
-                                                            onSelect={() => {
-                                                                setSelectedFilamentId(f.id);
-                                                                setOpenFilamentCombo(false);
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    selectedFilamentId === f.id ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            <div className="flex flex-col">
-                                                                <span>{f.color_tipo_filamento} - {f.marca}</span>
-                                                                <span className="text-xs text-gray-500">{f.material} • ${f.precio_por_gramo.toFixed(2)}/g</span>
-                                                            </div>
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
+                                <Label className="mb-2">Filamento <span className="text-red-500">*</span></Label>
+                                <div className="relative" ref={filamentRef}>
+                                    <Input
+                                        placeholder="Escribe el filamento..."
+                                        value={filamentSearch}
+                                        onChange={(e) => {
+                                            setFilamentSearch(e.target.value);
+                                            setOpenFilamentCombo(true);
+                                            if (e.target.value === '') setSelectedFilamentId('');
+                                        }}
+                                        onFocus={() => setOpenFilamentCombo(true)}
+                                        className="w-full font-normal pr-10"
+                                    />
+                                    <ChevronsUpDown className="absolute right-3 top-2.5 h-4 w-4 shrink-0 opacity-50" />
+                                    
+                                    {openFilamentCombo && (
+                                        <div className="absolute top-full left-0 w-full z-[100] bg-white border border-gray-200 mt-1 rounded-md shadow-xl max-h-60 overflow-y-auto">
+                                            {filaments
+                                                .filter(f => 
+                                                    `${f.color_tipo_filamento} ${f.material}`.toLowerCase().includes(filamentSearch.toLowerCase())
+                                                )
+                                                .map((f) => (
+                                                <div
+                                                    key={f.id}
+                                                    className={cn(
+                                                        "flex flex-col p-3 cursor-pointer hover:bg-gray-100 border-b border-gray-50 last:border-0",
+                                                        selectedFilamentId === f.id && "bg-orange-50"
+                                                    )}
+                                                    onClick={() => {
+                                                        setSelectedFilamentId(f.id);
+                                                        setFilamentSearch(`${f.color_tipo_filamento} (${f.material})`);
+                                                        setOpenFilamentCombo(false);
+                                                    }}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="font-semibold text-sm">{f.color_tipo_filamento}</span>
+                                                        {selectedFilamentId === f.id && <Check className="h-4 w-4 text-naranja" />}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">{f.material} - ${f.precio_por_gramo.toFixed(4)}/g</span>
+                                                </div>
+                                            ))}
+                                            {filaments.filter(f => `${f.color_tipo_filamento} ${f.material}`.toLowerCase().includes(filamentSearch.toLowerCase())).length === 0 && (
+                                                <div className="p-4 text-sm text-gray-500 text-center">No se encontró filamento.</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                             <Label>Tiempo Impresión</Label>
+                             <Label>Tiempo Impresión <span className="text-red-500">*</span></Label>
                             <div className="flex gap-4">
                                 <div className="flex-1 relative">
                                     <Input 
@@ -409,7 +553,7 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Gramos (Unit)</Label>
+                                <Label>Gramos (Unit) <span className="text-red-500">*</span></Label>
                                 <Input 
                                     type="number" 
                                     className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -460,6 +604,52 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                             <Label>Descripción (Opcional)</Label>
                             <Textarea value={descripcion} onChange={e => setDescripcion(e.target.value)} />
                         </div>
+
+                        <div className="bg-orange-50/50 p-4 rounded-lg border border-orange-100 space-y-4">
+                            <div className="flex items-center space-x-2">
+                                <input 
+                                    type="checkbox" 
+                                    id="req_objeto"
+                                    checked={incluyeObjeto}
+                                    onChange={(e) => setIncluyeObjeto(e.target.checked)}
+                                    className="rounded text-naranja border-gray-300 focus:ring-naranja"
+                                />
+                                <Label htmlFor="req_objeto" className="font-semibold text-gray-900 cursor-pointer">
+                                    ¿Incluir objeto / extra por pieza? (Ej. Argolla de Llavero)
+                                </Label>
+                            </div>
+
+                            {incluyeObjeto && (
+                                <div className="grid grid-cols-2 gap-4 pl-6 border-l-2 border-naranja/20 mt-2">
+                                     <div className="space-y-2">
+                                        <Label>Seleccionar Objeto</Label>
+                                        <Select value={selectedObjetoId} onValueChange={setSelectedObjetoId}>
+                                            <SelectTrigger className="bg-white">
+                                                <SelectValue placeholder="Objeto..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Seleccionar...</SelectItem>
+                                                {objetos.map(o => (
+                                                    <SelectItem key={o.id} value={o.id}>
+                                                        {o.nombre} ({o.stock_disponible} disp.)
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Cantidad (por pieza)</Label>
+                                        <Input 
+                                            type="number" 
+                                            min="1" 
+                                            value={cantidadObjetoPorPieza} 
+                                            onChange={e => setCantidadObjetoPorPieza(parseInt(e.target.value) || 1)} 
+                                            className="bg-white"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Right Column: Calculations */}
@@ -483,6 +673,12 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                                     <span>+ Modelado ({totalModelingHoursInput.toFixed(2)}h total):</span>
                                     <span>${totalModelingCost.toFixed(2)}</span>
                                 </div>
+                                {incluyeObjeto && selectedObjeto && (
+                                     <div className="flex justify-between text-violet-600 bg-violet-50 p-1 rounded font-medium">
+                                         <span>+ Objeto Extra ({cantidadObjetoPorPieza}x ${objetoCostoUnitario.toFixed(2)}):</span>
+                                         <span>${costoObjetoEnPieza.toFixed(2)}</span>
+                                     </div>
+                                )}
                                 <div className="flex justify-between font-medium text-gray-900 pt-2 border-t">
                                     <span>Costo Prod. Unitario:</span>
                                     <span>${costoTotalUnit.toFixed(2)}</span>
@@ -500,9 +696,9 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
 
                         <div className="space-y-4 pt-6 border-t border-gray-200 mt-4">
                             <div className="space-y-2">
-                                <Label className="text-gray-900 font-semibold flex justify-between">
-                                    <span>Precio Base (Impresión + Material)</span>
-                                    <span className="text-xs font-normal text-gray-500 self-center">Sin incluir modelado</span>
+                                <Label className="text-gray-900 font-semibold flex flex-col gap-0.5">
+                                    <span>Precio Base (Impresión + Material + Objeto)</span>
+                                    <span className="text-xs font-normal text-gray-500">Sin incluir modelado</span>
                                 </Label>
                                 <Input 
                                     type="number" 
@@ -517,8 +713,8 @@ export function PieceForm({ open, onOpenChange, jobId, onPieceAdded, pieceToEdit
                             
                             <div className="space-y-2 bg-white p-3 rounded-lg border border-gray-200">
                                 <div className="flex justify-between items-center text-lg font-bold text-naranja">
-                                    <span>Total Venta:</span>
-                                    <span>${((basePrice * cantidad) + totalModelingCost).toFixed(2)}</span>
+                                    <span>Total Venta (Con modelado):</span>
+                                    <span>${((precioFinalUnit * cantidad) + (totalModelingCost)).toFixed(2)}</span>
                                 </div>
                             </div>
                             
