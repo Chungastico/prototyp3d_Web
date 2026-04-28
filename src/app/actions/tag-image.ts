@@ -38,6 +38,24 @@ function cacheSet<T>(cache: Map<string, T>, key: string, value: T): void {
     cache.set(key, value);
 }
 
+function validateImageUrl(url: string): void {
+    const trustedDomain = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!trustedDomain) {
+        throw new Error('Server configuration error: NEXT_PUBLIC_SUPABASE_URL is missing. Failing securely.');
+    }
+
+    try {
+        const parsedUrl = new URL(url);
+        const parsedTrustedDomain = new URL(trustedDomain);
+
+        if (parsedUrl.hostname !== parsedTrustedDomain.hostname) {
+            throw new Error('Security Error: Image URL domain is not trusted (SSRF prevention).');
+        }
+    } catch (e) {
+        throw new Error('Security Error: Invalid Image URL or trusted domain configuration.');
+    }
+}
+
 /**
  * =========================
  * TAGS
@@ -57,6 +75,7 @@ export async function generateImageTags(imageUrl: string): Promise<string[]> {
         if (existing) return await existing;
 
         const task = (async (): Promise<string[]> => {
+            validateImageUrl(imageUrl);
             const response = await fetch(imageUrl);
             if (!response.ok) {
                 throw new Error(`Image fetch failed: ${response.status} ${response.statusText}`);
@@ -157,6 +176,7 @@ export async function generateProductDescription(params: {
         if (existing) return await existing;
 
         const task = (async (): Promise<string> => {
+            validateImageUrl(imageUrl);
             const response = await fetch(imageUrl);
             if (!response.ok) {
                 throw new Error(`Image fetch failed: ${response.status} ${response.statusText}`);
