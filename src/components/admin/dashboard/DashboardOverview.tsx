@@ -47,12 +47,53 @@ export function DashboardOverview() {
         const fetchDashboardData = async () => {
             setLoading(true);
 
-            // 1. Jobs: Active count & Upcoming 3 Deadlines
-            const { data: jobs } = await supabase
-                .from('gestion_trabajos')
-                .select('id, nombre_proyecto, fecha_entrega, cliente:clientes(nombre_cliente), estado')
-                .in('estado', ['aprobado', 'en_produccion', 'cotizado'])
-                .order('fecha_entrega', { ascending: true, nullsFirst: false });
+            const start = startOfMonth(selectedDate).toISOString();
+            const end = endOfMonth(selectedDate).toISOString();
+
+            // ⚡ Bolt: Batch independent queries concurrently using Promise.all
+            // This prevents network waterfalls and significantly improves time-to-data
+            // by fetching jobs, tasks, inventory count, and monthly jobs simultaneously.
+            const [
+                { data: jobs },
+                { data: tasks },
+                { count: inventoryCount },
+                { data: monthlyJobs }
+            ] = await Promise.all([
+                // 1. Jobs: Active count & Upcoming 3 Deadlines
+                supabase
+                    .from('gestion_trabajos')
+                    .select('id, nombre_proyecto, fecha_entrega, cliente:clientes(nombre_cliente), estado')
+                    .in('estado', ['aprobado', 'en_produccion', 'cotizado'])
+                    .order('fecha_entrega', { ascending: true, nullsFirst: false }),
+
+                // 2. Projects: Urgent Tasks
+                supabase
+                    .from('proyectos_internos_prototyp3d')
+                    .select('id, proyecto, fecha_objetivo, estado')
+                    .not('fecha_objetivo', 'is', null)
+                    .neq('estado', 'Completado')
+                    .order('fecha_objetivo', { ascending: true })
+                    .limit(3),
+
+                // 3. Inventory: Low Stock (Global)
+                supabase
+                    .from('inventario_filamento')
+                    .select('*', { count: 'exact', head: true }),
+
+                // 4. Monthly Operations & Finances
+                supabase
+                    .from('gestion_trabajos')
+                    .select(`
+                        id,
+                        estado,
+                        monto_cobrado,
+                        piezas_trabajo (total_venta, total_costo),
+                        extras_aplicados (subtotal, es_venta, es_costo)
+                    `)
+                    .gte('fecha_entrega', start)
+                    .lte('fecha_entrega', end)
+                    .neq('estado', 'cancelado')
+            ]);
 
             const activeJobsCount = jobs?.filter(j => j.estado !== 'cotizado').length || 0;
             
@@ -67,43 +108,12 @@ export function DashboardOverview() {
                     estado: j.estado
                 })) || [];
 
-            // 2. Projects: Urgent Tasks
-            const { data: tasks } = await supabase
-                .from('proyectos_internos_prototyp3d')
-                .select('id, proyecto, fecha_objetivo, estado')
-                .not('fecha_objetivo', 'is', null)
-                .neq('estado', 'Completado')
-                .order('fecha_objetivo', { ascending: true })
-                .limit(3);
-
             const urgentTasks = tasks?.map(t => ({
                 id: t.id,
                 title: t.proyecto,
                 due: t.fecha_objetivo,
                 estado: t.estado
             })) || [];
-
-            // 3. Inventory: Low Stock (Global)
-            const { count: inventoryCount } = await supabase
-                .from('inventario_filamento')
-                .select('*', { count: 'exact', head: true });
-
-            // 4. Monthly Operations & Finances
-            const start = startOfMonth(selectedDate).toISOString();
-            const end = endOfMonth(selectedDate).toISOString();
-
-            const { data: monthlyJobs } = await supabase
-                .from('gestion_trabajos')
-                .select(`
-                    id,
-                    estado,
-                    monto_cobrado,
-                    piezas_trabajo (total_venta, total_costo),
-                    extras_aplicados (subtotal, es_venta, es_costo)
-                `)
-                .gte('fecha_entrega', start)
-                .lte('fecha_entrega', end)
-                .neq('estado', 'cancelado');
 
             let totalRevenue = 0;
             let totalCost = 0;
