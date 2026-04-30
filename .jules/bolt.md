@@ -1,0 +1,3 @@
+## 2024-06-25 - String Hoisting and Reduce Consolidation
+**Learning:** We can hoist computationally expensive invariant calculations out of mapping and filtering functions (e.g. string transformations like `.toLowerCase()`), which prevents redundant evaluations. Further, traversing large datasets multiple times with multiple `.filter().reduce()` chains can be consolidated into a single `.reduce()` pass returning an object map.
+**Action:** Always check the callback function inside loops (`.map`, `.filter`, etc) for redundant constant transformations. Combine array iterations where possible (e.g. tracking multiple aggregates in one `.reduce()`) to save unnecessary array traversals, while keeping the callback functional/pure.

@@ -213,20 +213,24 @@ export function TransactionsPanel() {
         return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
     };
 
+    // Bolt Optimization: Hoisted string transformation
+    const lowerSearchTerm = searchTerm.toLowerCase();
+
     const filteredTransactions = transactions.filter(t => {
-        const matchesSearch = t.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                              t.categoria.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = t.descripcion.toLowerCase().includes(lowerSearchTerm) ||
+                              t.categoria.toLowerCase().includes(lowerSearchTerm);
         const matchesType = typeFilter === 'all' || t.tipo === typeFilter;
         return matchesSearch && matchesType;
     });
 
-    const totalIngresos = filteredTransactions
-        .filter(t => t.tipo === 'ingreso')
-        .reduce((sum, t) => sum + t.monto, 0);
-
-    const totalGastos = filteredTransactions
-        .filter(t => t.tipo === 'gasto')
-        .reduce((sum, t) => sum + t.monto, 0);
+    const { totalIngresos, totalGastos } = filteredTransactions.reduce(
+        (acc, t) => {
+            if (t.tipo === 'ingreso') acc.totalIngresos += t.monto;
+            else if (t.tipo === 'gasto') acc.totalGastos += t.monto;
+            return acc;
+        },
+        { totalIngresos: 0, totalGastos: 0 }
+    );
 
     return (
         <div className="space-y-6">
