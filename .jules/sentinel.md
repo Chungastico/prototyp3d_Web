@@ -1,0 +1,4 @@
+## 2025-04-30 - Insecure Random Number Generation for IDs and Filenames
+**Vulnerability:** `Math.random()` was being used to generate unique IDs and filenames (e.g., in Supabase storage paths and React state keys). This is insecure as `Math.random()` is not cryptographically secure, and can lead to predictable IDs, collisions, and potential insecure direct object reference (IDOR) vulnerabilities or file overwrites.
+**Learning:** Even for seemingly benign uses like filenames and local component state, predictable randomness can introduce vulnerabilities or logical bugs when collisions occur. The codebase memory explicitly states to use `crypto.randomUUID()` for generating unique IDs and filenames.
+**Prevention:** Always use `crypto.randomUUID()` (or a cryptographically secure equivalent like `uuid` or `nanoid`) when generating unique identifiers or filenames. Do not use `Math.random()` for any purpose requiring unpredictability or uniqueness.
