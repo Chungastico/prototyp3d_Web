@@ -9,6 +9,24 @@ import { model } from '@/lib/gemini';
  */
 const MAX_CACHE = 200;
 
+function validateImageUrl(imageUrl: string): void {
+    const supabaseUrlStr = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrlStr) {
+        throw new Error('Missing trusted domain configuration (NEXT_PUBLIC_SUPABASE_URL)');
+    }
+
+    try {
+        const url = new URL(imageUrl);
+        const trustedUrl = new URL(supabaseUrlStr);
+
+        if (url.hostname !== trustedUrl.hostname) {
+            throw new Error('Untrusted image URL domain');
+        }
+    } catch (e) {
+        throw new Error('Invalid image URL format or untrusted domain');
+    }
+}
+
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -57,6 +75,7 @@ export async function generateImageTags(imageUrl: string): Promise<string[]> {
         if (existing) return await existing;
 
         const task = (async (): Promise<string[]> => {
+            validateImageUrl(imageUrl);
             const response = await fetch(imageUrl);
             if (!response.ok) {
                 throw new Error(`Image fetch failed: ${response.status} ${response.statusText}`);
@@ -157,6 +176,7 @@ export async function generateProductDescription(params: {
         if (existing) return await existing;
 
         const task = (async (): Promise<string> => {
+            validateImageUrl(imageUrl);
             const response = await fetch(imageUrl);
             if (!response.ok) {
                 throw new Error(`Image fetch failed: ${response.status} ${response.statusText}`);
