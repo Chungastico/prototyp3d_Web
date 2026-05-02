@@ -1,0 +1,4 @@
+## 2025-02-14 - Fix SSRF Vulnerability in Image Actions
+**Vulnerability:** The server actions in `src/app/actions/tag-image.ts` fetch images using URLs directly supplied by the client (`fetch(imageUrl)`). This allowed an attacker to supply any URL (e.g., local IPs or internal endpoints), leading to a Server-Side Request Forgery (SSRF) vulnerability.
+**Learning:** External URLs provided by clients must never be fetched on the server without validation. The server should fail securely by throwing an error if the trusted domain configuration is missing or the domain does not match.
+**Prevention:** Always validate user-supplied URLs against trusted domains (e.g., using `new URL(imageUrl)` to extract the hostname and comparing it to `NEXT_PUBLIC_SUPABASE_URL`) before executing the `fetch` on the server.
